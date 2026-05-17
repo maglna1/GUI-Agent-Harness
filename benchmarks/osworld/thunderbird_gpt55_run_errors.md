@@ -1,19 +1,19 @@
 # OSWorld Thunderbird Domain - GPT-5.5 Run Errors
 
-> 15 tasks | **37.5%** (3/8 officially scored so far) | started 2026-05-18
+> 15 tasks | **44.4%** (4/9 officially scored so far) | started 2026-05-18
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Total tasks | 15 |
-| Run so far | 9 |
-| Officially scored | 8 |
-| Pass (1.0) | 3 |
+| Run so far | 10 |
+| Officially scored | 9 |
+| Pass (1.0) | 4 |
 | Numeric fail (0.0) | 5 |
 | Eval error / N/A | 1 |
-| Not reached | 6 |
-| Score so far | 37.5% (3/8) |
+| Not reached | 5 |
+| Score so far | 44.4% (4/9) |
 
 **Test environment:** Ubuntu VM at `172.16.105.130`, 1920x1080, `openai-codex/gpt-5.5` via GUI Agent Harness
 
@@ -43,7 +43,8 @@
 | 7 | dd84e895 | Add a star to every email in local `Bills` folder | 0.0 FAIL | 15 | 167s | Starred at least one row, but mis-targeted later star clicks and switched focus to GIMP; screenshot-read cascade stopped the run before all messages were starred |
 | 8 | 9b7bc335 | Forward every future email received by `anonym-x2024@outlook.com` | 1.0 PASS | 15 | 226s | Created `Forward all mail` filter, matched all messages, selected forward action, entered `anonym-x2024@gmail.com`, and saved it |
 | 9 | d38192b0 | Attach `~/aws-bill.pdf` to the existing AWS bill email draft | 1.0 PASS | 8 | 82s | Opened attachment picker, selected `aws-bill.pdf`, and left the draft open; evaluator helper confirmed the attachment |
-| 10-15 | - | Not reached | - | - | - | Continue from task 10 |
+| 10 | a10b69e1 | Create local folders `COMPANY` and `UNIVERSITY` | 1.0 PASS | 9 | 108s | Created both folders under Local Folders; evaluator `ls -R` found both folder files and `.msf` indexes |
+| 11-15 | - | Not reached | - | - | - | Continue from task 11 |
 
 ## Error Details
 
@@ -58,6 +59,7 @@
 | 7 | Not all Bills messages were starred | Mis-targeted star coordinates clicked outside Thunderbird and focused GIMP; steps 9-15 hit screenshot-read cascade; conclusion got HTTP 400 invalid image | Evaluator downloaded `global-messages-db.sqlite`; score 0.0 | `task_7.log` |
 | 8 | Early model/session failures but task recovered | First three steps failed with `Agent session failed`; later steps built the filter successfully within step budget | PASS; downloaded 143-byte `msgFilterRules.dat` matched expected forwarding rule | `task_8.log` |
 | 9 | Early verifier failures but task recovered | Attachment picker flow succeeded after three verifier `Agent session failed` errors | PASS; evaluator installed helper and reported `Attachment added!` for `aws-bill.pdf` | `task_9.log` |
+| 10 | None significant | Created `COMPANY` and `UNIVERSITY` folders via Local Folders context menu | PASS; evaluator `ls -R` found both folders | `task_10.log` |
 
 ## Error Categories
 
@@ -72,11 +74,11 @@
 | Runner success after early failures | 5, 8, 9 | Official evaluator returned 1.0 despite early model/session errors | Shows early `Agent session failed` is not always fatal when later steps recover. |
 | Evaluator setup failure | 1 | Upload failed with status 500: read-only filesystem at `/home/user/Desktop/firefox_decrypt.py` | Separate from runner failure; official score is N/A. |
 | HuggingFace asset download instability | 1, 3, 7 | SSL EOF retries while downloading task assets | Downloads recovered after retries/curl fallback where applicable. |
-| Missing proxy config warning | 1-9 | `evaluation_examples/settings/proxy/dataimpulse.json` not found | Non-blocking so far. |
+| Missing proxy config warning | 1-10 | `evaluation_examples/settings/proxy/dataimpulse.json` not found | Non-blocking so far. |
 
 ## Handoff Notes
 
-- Continue at Thunderbird task 10 in `runs/thunderbird_all_20260518_0442`.
+- Continue at Thunderbird task 11 in `runs/thunderbird_all_20260518_0442`.
 - Official `test_all.json` lists 15 Thunderbird tasks; the older `benchmarks/osworld/thunderbird.md` says 24 and is stale.
 - Treat official evaluator score as benchmark truth. Task 1 has no score because evaluator setup failed after runner failure.
 - Watch for VM filesystem state. Task 1 evaluator could not upload to `/home/user/Desktop/firefox_decrypt.py` due to a read-only filesystem.

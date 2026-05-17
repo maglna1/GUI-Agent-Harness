@@ -145,7 +145,13 @@ def setup_vm(vm_ip: str, task_config: dict):
 
 
 
-def run_task(task_config: dict, vm_ip: str, max_steps: int) -> dict:
+def run_task(
+    task_config: dict,
+    vm_ip: str,
+    max_steps: int,
+    provider: str = "openai-codex",
+    model: str = "gpt-5.5",
+) -> dict:
     """Run the task using execute_task."""
     os.environ["NO_PROXY"] = f"{vm_ip}/24"
     os.environ["no_proxy"] = f"{vm_ip}/24"
@@ -184,9 +190,9 @@ def run_task(task_config: dict, vm_ip: str, max_steps: int) -> dict:
             print(f"Warning: could not activate Chrome: {e}")
 
     from gui_harness.tasks.execute_task import execute_task
-    from openprogram.providers import create_runtime
+    from gui_harness.openprogram_compat import create_runtime
 
-    runtime = create_runtime(provider="claude-code", model="opus")
+    runtime = create_runtime(provider=provider, model=model)
 
     related_apps = task_config.get("related_apps") or ["desktop"]
     app_name = related_apps[0] if related_apps else "desktop"
@@ -278,15 +284,21 @@ def print_result(result: dict, task_num: int, score: float = None):
             print(f"Score: {score:.3f} {'✅' if score >= 1.0 else ('⚠️' if score > 0 else '❌')}")
     print()
     for h in result["history"]:
-        status = "OK" if h.get("success") else "FAIL"
+        exec_ok = h.get("exec_result", {}).get("success")
+        exec_tag = "OK  " if exec_ok else ("FAIL" if exec_ok is False else "--  ")
+        ver = h.get("verification") or {}
+        if "step_succeeded" in ver:
+            ver_tag = "v-OK  " if ver["step_succeeded"] else "v-FAIL"
+        else:
+            ver_tag = "v-?   "
         timing = h.get("timing", {})
         step_t = timing.get("step_total", "?")
-        output = str(h.get("output", ""))[:120]
         plan = h.get("plan", {})
         action = plan.get("call", plan.get("action", "?"))
-        print(f"  {h['step']:2d}. [{status}] {str(action):15s} ({step_t}s)")
-        if output.strip():
-            print(f"      output: {output}")
+        exec_err = h.get("exec_result", {}).get("error", "")
+        print(f"  {h['step']:2d}. [exec {exec_tag}][{ver_tag}] {str(action):15s} ({step_t}s)")
+        if exec_err:
+            print(f"      error: {str(exec_err)[:120]}")
     print("=" * 60)
 
 
@@ -296,6 +308,8 @@ def main():
     parser.add_argument("--domain", default="multi_apps", help="OSWorld domain (e.g., chrome, gimp, os, libreoffice_calc, multi_apps)")
     parser.add_argument("--vm", default="172.16.82.132", help="VM IP address")
     parser.add_argument("--max-steps", type=int, default=15, help="Max steps")
+    parser.add_argument("--provider", default="openai-codex", help="OpenProgram provider")
+    parser.add_argument("--model", default="gpt-5.5", help="OpenProgram model")
     parser.add_argument("--no-setup", action="store_true", help="Skip VM reset")
     parser.add_argument("--no-eval", action="store_true", help="Skip official evaluation")
     args = parser.parse_args()
@@ -311,7 +325,7 @@ def main():
     if not args.no_setup:
         setup_vm(args.vm, task_config)
 
-    result = run_task(task_config, args.vm, args.max_steps)
+    result = run_task(task_config, args.vm, args.max_steps, args.provider, args.model)
 
     # Diagnose Chrome debugging port before evaluation
     vm_url = f"http://{args.vm}:5000"

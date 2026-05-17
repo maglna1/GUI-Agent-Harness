@@ -8,7 +8,7 @@ version = "0.4.0"
 description = "Autonomous GUI agent — give it a task, it operates the desktop"
 requires-python = ">=3.11"
 dependencies = [
-    "openprogram @ git+https://github.com/Fzkuji/OpenProgram.git",
+    "openprogram @ git+https://github.com/Fzkuji/OpenProgram.git@58e7709d069b797fda1dc7c22356060f8eba46c3",
     "pynput",
     "opencv-python",
     "numpy",

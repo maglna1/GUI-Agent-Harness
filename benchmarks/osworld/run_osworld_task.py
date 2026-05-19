@@ -26,6 +26,12 @@ import traceback
 import urllib.request
 from contextlib import contextmanager
 
+os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
+os.environ.setdefault("GIT_ASKPASS", "/bin/false")
+os.environ.setdefault("SSH_ASKPASS", "/bin/false")
+os.environ.setdefault("SUDO_ASKPASS", "/bin/false")
+os.environ.setdefault("OSWORLD_BENCHMARK_FIXED", "1")
+
 OSWORLD_DIR = os.path.expanduser("~/OSWorld")
 VM_PORT = 5000
 VMRUN = "/Applications/VMware Fusion.app/Contents/Public/vmrun"
@@ -138,6 +144,16 @@ def sanitize_vmx_devices() -> None:
     if new_text != old_text:
         with open(vmx_path, "w") as f:
             f.write(new_text)
+
+
+def stop_vm_if_running() -> None:
+    try:
+        listed = subprocess.run([VMRUN, "list"], capture_output=True, text=True, timeout=30)
+        if os.path.expanduser(VMX) in listed.stdout:
+            subprocess.run([VMRUN, "stop", VMX, "hard"], capture_output=True, timeout=60)
+            time.sleep(2)
+    except Exception as e:
+        print(f"  VM stop warning: {e}")
 
 
 @contextmanager
@@ -299,6 +315,8 @@ def get_task_config(task_num: int, domain: str = "multi_apps") -> dict:
 
 def setup_vm(vm_ip: str, task_config: dict, artifact_dir=None):
     """Revert VM to snapshot and run official OSWorld setup."""
+    stop_vm_if_running()
+    sanitize_vmx_devices()
     print(f"Reverting VM to {VM_SNAPSHOT}...")
     subprocess.run([VMRUN, "revertToSnapshot", VMX, VM_SNAPSHOT],
                    capture_output=True, timeout=120)

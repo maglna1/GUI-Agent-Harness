@@ -10,6 +10,12 @@ RUN_CONFIG="${OSWORLD_RUN_CONFIG:-}"
 MAX_STEPS="${MAX_STEPS:-15}"
 LOG_DIR="/tmp/osworld_batch_${DOMAIN}"
 
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=/bin/false
+export SSH_ASKPASS=/bin/false
+export SUDO_ASKPASS=/bin/false
+export OSWORLD_BENCHMARK_FIXED=1
+
 mkdir -p "$LOG_DIR"
 
 echo "=== Running ${DOMAIN} tasks $START to $END ==="

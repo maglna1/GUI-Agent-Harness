@@ -31,6 +31,7 @@ VM_PORT = 5000
 VMRUN = "/Applications/VMware Fusion.app/Contents/Public/vmrun"
 VMX = os.path.expanduser("~/OSWorld/vmware_vm_data/Ubuntu-arm/Ubuntu.vmx")
 VM_SNAPSHOT = "init_state"
+VM_START_MODE = "gui"
 HOST_PROXY_URL = "http://172.16.82.1:6152"
 OSWORLD_CACHE_DIR = "cache"
 
@@ -53,7 +54,7 @@ def load_run_config(path: str | None) -> dict:
 
 
 def apply_run_config(args, config: dict) -> None:
-    global OSWORLD_DIR, VM_PORT, VMRUN, VMX, VM_SNAPSHOT, HOST_PROXY_URL, OSWORLD_CACHE_DIR
+    global OSWORLD_DIR, VM_PORT, VMRUN, VMX, VM_SNAPSHOT, VM_START_MODE, HOST_PROXY_URL, OSWORLD_CACHE_DIR
     if not config:
         return
 
@@ -65,6 +66,7 @@ def apply_run_config(args, config: dict) -> None:
     VMRUN = os.path.expanduser(vm.get("vmrun", VMRUN))
     VMX = os.path.expanduser(vm.get("vmx", VMX))
     VM_SNAPSHOT = vm.get("snapshot", VM_SNAPSHOT)
+    VM_START_MODE = vm.get("start_mode", VM_START_MODE)
     VM_PORT = int(vm.get("server_port", VM_PORT))
     HOST_PROXY_URL = vm.get("host_proxy_url", HOST_PROXY_URL)
     OSWORLD_CACHE_DIR = paths.get("osworld_cache_dir", OSWORLD_CACHE_DIR)
@@ -99,6 +101,43 @@ def configure_osworld_environment() -> None:
         os.path.expanduser(OSWORLD_DIR),
         "evaluation_examples/settings/proxy/dataimpulse.json",
     )
+
+
+def sanitize_vmx_devices() -> None:
+    """Prevent VMware's virtual camera bridge from showing host-side popups.
+
+    Fusion may rehydrate a virtual USB video device from snapshot state even if
+    the current VMX does not list it. Keeping explicit disabled entries and
+    starting the benchmark VM headless avoids the repeated
+    "Virtual video camera failed to connect" overlay during automated runs.
+    """
+    vmx_path = os.path.expanduser(VMX)
+    if not os.path.exists(vmx_path):
+        return
+    disabled = {
+        "ehci:0.present": "FALSE",
+        "ehci:0.startConnected": "FALSE",
+        "ehci:0.deviceType": "video",
+        "usb.vbluetooth.startConnected": "FALSE",
+    }
+    lines = open(vmx_path).read().splitlines()
+    seen = set()
+    out = []
+    for line in lines:
+        key = line.split("=", 1)[0].strip() if "=" in line else None
+        if key in disabled:
+            out.append(f'{key} = "{disabled[key]}"')
+            seen.add(key)
+        else:
+            out.append(line)
+    for key, value in disabled.items():
+        if key not in seen:
+            out.append(f'{key} = "{value}"')
+    new_text = "\n".join(out) + "\n"
+    old_text = "\n".join(lines) + "\n"
+    if new_text != old_text:
+        with open(vmx_path, "w") as f:
+            f.write(new_text)
 
 
 @contextmanager
@@ -263,9 +302,11 @@ def setup_vm(vm_ip: str, task_config: dict, artifact_dir=None):
     print(f"Reverting VM to {VM_SNAPSHOT}...")
     subprocess.run([VMRUN, "revertToSnapshot", VMX, VM_SNAPSHOT],
                    capture_output=True, timeout=120)
+    sanitize_vmx_devices()
     # start may hang if VM is already running after revert; run in background
-    subprocess.Popen([VMRUN, "start", VMX, "gui"],
+    subprocess.Popen([VMRUN, "start", VMX, VM_START_MODE],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(f"Starting VM in {VM_START_MODE} mode...")
     time.sleep(5)
 
     # Wait for VM API — retry longer to ensure VM is fully booted
@@ -586,6 +627,7 @@ def main():
                 "vmrun": VMRUN,
                 "vmx": VMX,
                 "snapshot": VM_SNAPSHOT,
+                "start_mode": VM_START_MODE,
                 "host_proxy_url": HOST_PROXY_URL,
                 "osworld_cache_dir": OSWORLD_CACHE_DIR,
                 "python_executable": sys.executable,

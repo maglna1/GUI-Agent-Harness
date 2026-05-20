@@ -27,6 +27,8 @@ from gui_harness.constants import GUI_SYSTEM_PROMPT
 # ═══════════════════════════════════════════
 
 @agentic_function(
+    as_tool=True,
+    toolset=("harness",),
     render_range={"siblings": -1},
     system=GUI_SYSTEM_PROMPT,
     input={
@@ -202,7 +204,7 @@ def main():
     parser.add_argument("--work-dir", required=True,
                         help="Absolute path for agent file writes (runtime's codex --cd target).")
     parser.add_argument("--vm", help="VM HTTP API URL (for OSWorld)")
-    parser.add_argument("--provider", help="Force LLM provider: openclaw, claude-code, anthropic, openai")
+    parser.add_argument("--provider", help="Force LLM provider: openai-codex, claude-code, anthropic, openai, gemini-cli, gemini")
     parser.add_argument("--model", help="Override model name")
     parser.add_argument("--max-steps", type=int, default=15, help="Max actions (default: 15)")
     parser.add_argument("--app", default="desktop", help="App name for memory (default: desktop)")

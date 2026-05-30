@@ -15,7 +15,8 @@ perception stack, so they're loaded lazily here — touching them without
 the deps raises the underlying ImportError at access time, not at
 ``import gui_harness`` time. This keeps OpenProgram's harness discovery
 (which imports ``gui_harness.agentics``) from exploding on a machine
-that hasn't run ``pip install openprogram[gui]`` yet.
+that hasn't installed this harness's deps yet (``openprogram programs
+install gui`` clones it and pip-installs its declared deps).
 """
 
 __all__ = [

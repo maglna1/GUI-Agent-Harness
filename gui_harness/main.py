@@ -39,7 +39,14 @@ from gui_harness.constants import GUI_SYSTEM_PROMPT
         },
         "max_steps": {
             "description": "Maximum number of actions before giving up",
-            "options": ["5", "10", "15", "30"],
+            # Integers, not strings: the param is annotated ``max_steps: int``
+            # so the generated JSON schema is ``type: integer``. String options
+            # here produce ``enum: ["5",...]`` which contradicts the integer
+            # type and OpenAI strict-mode tool validation rejects the whole
+            # request (HTTP 400 invalid_function_parameters), breaking every
+            # turn — not just gui_agent calls — when an OpenAI/codex model is
+            # selected. Keep enum values the same type as the param.
+            "options": [5, 10, 15, 30],
         },
         "app_name": {
             "description": "App name for component memory",

@@ -1,0 +1,69 @@
+# Atomic Actions — Windows
+# These are shared by ALL scenes. They are the leaf nodes of any task decomposition.
+# When a scene step has no `ref:`, it uses one of these actions directly.
+#
+# Loading: Only read this file when you're about to EXECUTE an action.
+# Scene files tell you WHICH action to use; this file tells you HOW.
+
+actions:
+
+  # === Mouse ===
+  click:
+    desc: "Click at coordinates"
+    cmd: "pyautogui.click({x}, {y})"
+    constraints:
+      - "Coordinates are logical pixels (DPI scaling handled by harness)"
+      - "Execute via VM HTTP API: POST /execute with python3 -c command"
+
+  double_click:
+    desc: "Double-click at coordinates"
+    cmd: "pyautogui.click({x}, {y}, clicks=2)"
+
+  right_click:
+    desc: "Right-click at coordinates"
+    cmd: "pyautogui.click({x}, {y}, button='right')"
+
+  drag:
+    desc: "Drag from one coordinate to another"
+    cmd: "pyautogui.dragTo({x2}, {y2}, duration=0.5, button='left')"
+
+  scroll:
+    desc: "Scroll at coordinates"
+    cmd: "pyautogui.scroll({amount}, x={x}, y={y})"
+
+  # === Keyboard ===
+  type:
+    desc: "Type text"
+    cmd: "pyautogui.typewrite({text!r}, interval=0.02)"
+    constraints:
+      - "For non-ASCII text, use clipboard paste instead of typewrite"
+
+  paste:
+    desc: "Paste text via clipboard"
+    cmd: |
+      import pyperclip
+      pyperclip.copy({text!r})
+      import pyautogui
+      pyautogui.hotkey('ctrl', 'v')
+
+  key:
+    desc: "Press a key or hotkey combination"
+    cmd: "pyautogui.press({key!r})"
+    examples:
+      - "pyautogui.press('enter')"
+      - "pyautogui.hotkey('ctrl', 's')"
+      - "pyautogui.hotkey('alt', 'f4')"
+
+  # === Screenshot ===
+  screenshot:
+    desc: "Take a screenshot"
+    cmd: "import pyautogui; pyautogui.screenshot({path!r})"
+
+  # === Clipboard ===
+  get_clipboard:
+    desc: "Get clipboard contents"
+    cmd: "import pyperclip; print(pyperclip.paste())"
+
+  set_clipboard:
+    desc: "Set clipboard contents"
+    cmd: "import pyperclip; pyperclip.copy({text!r})"

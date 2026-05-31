@@ -16,10 +16,15 @@ import time
 # Ensure project root is importable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from openprogram import agentic_function
-from openprogram.providers import create_runtime
-
 from gui_harness.constants import GUI_SYSTEM_PROMPT
+from gui_harness.openprogram_compat import agentic_function, create_runtime
+
+
+def _default_runtime_retries() -> int:
+    try:
+        return max(1, int(os.environ.get("GUI_HARNESS_OPENPROGRAM_MAX_RETRIES", "5")))
+    except ValueError:
+        return 5
 
 
 # ═══════════════════════════════════════════
@@ -212,6 +217,12 @@ def main():
     parser.add_argument("--vm", help="VM HTTP API URL (for OSWorld)")
     parser.add_argument("--provider", help="Force LLM provider: openai-codex, claude-code, anthropic, openai, gemini-cli, gemini")
     parser.add_argument("--model", help="Override model name")
+    parser.add_argument(
+        "--runtime-retries",
+        type=int,
+        default=_default_runtime_retries(),
+        help="OpenProgram exec attempts per model call for retryable provider failures.",
+    )
     parser.add_argument("--max-steps", type=int, default=15, help="Max actions (default: 15)")
     parser.add_argument("--app", default="desktop", help="App name for memory (default: desktop)")
     parser.add_argument("--no-general", action="store_true",
@@ -228,11 +239,13 @@ def main():
     kwargs = {}
     if args.model:
         kwargs["model"] = args.model
+    kwargs["max_retries"] = max(1, args.runtime_retries)
     runtime = create_runtime(provider=args.provider or "auto", **kwargs)
     work_dir = os.path.abspath(os.path.expanduser(args.work_dir))
     os.makedirs(work_dir, exist_ok=True)
     runtime.set_workdir(work_dir)
     print(f"Runtime: {type(runtime).__name__}")
+    print(f"Runtime retries: {max(1, args.runtime_retries)}")
     print(f"Task: {args.task}")
     print(f"Max steps: {args.max_steps}")
     print()

@@ -163,7 +163,7 @@ def record_runtime_error(
     try:
         path = Path(path_value)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a") as f:
+        with path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(event, ensure_ascii=False) + "\n")
     except Exception:
         # Error monitoring must never become a second failure path.

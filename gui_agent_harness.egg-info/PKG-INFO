@@ -1,14 +1,22 @@
 Metadata-Version: 2.4
 Name: gui-agent-harness
-Version: 0.2.0
-Summary: GUI automation powered by Agentic Programming — designed for OpenClaw
+Version: 0.4.0
+Summary: Autonomous GUI agent — give it a task, it operates the desktop
 Requires-Python: >=3.11
 License-File: LICENSE
-Requires-Dist: agentic-programming @ file:libs/agentic-programming
+Requires-Dist: openprogram @ git+https://github.com/Fzkuji/OpenProgram.git@main
 Requires-Dist: pynput
 Requires-Dist: opencv-python
+Requires-Dist: numpy
+Requires-Dist: Pillow
+Requires-Dist: ultralytics
+Requires-Dist: requests
+Provides-Extra: ocr
+Requires-Dist: easyocr; extra == "ocr"
 Provides-Extra: anthropic
 Requires-Dist: anthropic>=0.30; extra == "anthropic"
 Provides-Extra: openai
 Requires-Dist: openai>=1.30; extra == "openai"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
 Dynamic: license-file

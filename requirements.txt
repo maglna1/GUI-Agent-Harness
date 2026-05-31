@@ -1,20 +1,29 @@
-# GUI Agent dependencies
+# GUI Agent Harness — core dependencies
 # Install: pip install -r requirements.txt
-# Or run: bash scripts/setup.sh (recommended)
+# Note: torch/torchvision/torchaudio are large; install separately with the
+# correct CUDA/CPU variant for your platform if needed.
 
-torch
-torchvision
-torchaudio
-ultralytics>=8.3.0
-opencv-python-headless>=4.8.0
+# Core
+pynput>=1.7
+opencv-python>=4.8.0
 numpy>=1.24.0
+Pillow>=10.0
+ultralytics>=8.3.0
+requests>=2.31
+
+# Model weights / hub
 huggingface-hub
 transformers
 accelerate
 
-# OCR: EasyOCR for Linux/cross-platform (macOS uses Apple Vision natively)
+# OCR — EasyOCR for Linux/Windows (macOS uses Apple Vision natively)
 easyocr>=1.7.0
 
-# Optional: for Claude/GPT API integration
+# Deep learning backend (install platform-appropriate variant separately if needed)
+torch
+torchvision
+torchaudio
+
+# Optional: LLM API integration
 anthropic
 openai

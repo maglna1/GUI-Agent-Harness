@@ -102,6 +102,12 @@ pip install openprogram
 openprogram programs install gui
 ```
 
+Alternatively, install dependencies manually:
+
+```bash
+pip install -r requirements.txt
+```
+
 > **Platform note:** the **core action layer** — screen capture, mouse/keyboard
 > input, window focus, and clipboard — runs on **macOS, Windows, and Linux**
 > (screenshots via Pillow `ImageGrab`, input via `pynput`, window control via

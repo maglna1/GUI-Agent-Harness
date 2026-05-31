@@ -20,7 +20,7 @@ def mouse_click(x, y, button="left", clicks=1):
     btn = Button.right if button == "right" else Button.left
     mouse.click(btn, int(clicks))
     time.sleep(0.1)
-    mouse.position = (1500, 970)
+    mouse.position = (int(x), int(y))
 
 
 def mouse_move(x, y):
@@ -63,7 +63,7 @@ def mouse_drag(start_x, start_y, end_x, end_y, duration=0.5, button="left"):
     time.sleep(0.05)
     mouse.release(btn)
     time.sleep(0.1)
-    mouse.position = (1500, 970)
+    mouse.position = (int(x), int(y))
 
 
 # Convenience alias

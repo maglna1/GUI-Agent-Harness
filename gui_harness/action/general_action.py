@@ -30,6 +30,7 @@ def general_action(sub_task: str, task_context: str = "", runtime=None) -> dict:
         data_parts.append(task_context)
     data_parts.append(f"Sub-task: {sub_task}")
 
+    vm_url = None
     try:
         from gui_harness.action import input as _action_input
         vm_url = getattr(_action_input, '_vm_url', None)
@@ -41,13 +42,24 @@ Fetch web via proxy: curl -s --proxy http://$PROXY_HOST:$PROXY_PORT 'URL'""")
     except Exception:
         pass
 
+    if vm_url:
+        env_constraint = (
+            "- The environment is a REMOTE VM accessed via the API endpoint "
+            "above. Every command and file operation must target the VM via "
+            "its API; never execute commands on the local host directly.\n"
+        )
+    else:
+        import platform as _platform
+        env_constraint = (
+            f"- The environment is the LOCAL {_platform.system()} machine. "
+            "Use local shell commands, file paths, and installed apps directly.\n"
+        )
+
     data_parts.append(
         "Use any available tools — shell commands, file I/O, package "
         "installs, web browsing — to complete the sub-task.\n\n"
         "Constraints:\n"
-        "- The environment is a REMOTE Ubuntu VM, not local macOS. Every "
-        "command and file operation must target the VM via its API; "
-        "never use local macOS commands, paths, or apps.\n"
+        + env_constraint +
         "- Explore first: before writing new files or scripts, list the "
         "working directory on the VM to reuse existing scripts/templates.\n"
         "- When extracting or copying data, read directly from source "

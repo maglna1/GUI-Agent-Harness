@@ -87,7 +87,7 @@ def load_index(app_name):
 def save_index(app_name, index):
     """Save the template index for an app."""
     path = get_index_path(app_name)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(index, f, indent=2, ensure_ascii=False)
 
 

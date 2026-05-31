@@ -37,7 +37,7 @@ def general_action(sub_task: str, task_context: str = "", runtime=None) -> dict:
             data_parts.append(f"""VM API endpoint: {vm_url}
 Run commands:  curl -s -X POST {vm_url}/execute -H 'Content-Type: application/json' -d '{{"command": "YOUR_COMMAND", "shell": true}}'
 Read files:    curl -s -X POST {vm_url}/execute -H 'Content-Type: application/json' -d '{{"command": "cat /path/to/file", "shell": true}}'
-Fetch web via proxy: curl -s --proxy http://172.16.82.1:6152 'URL'""")
+Fetch web via proxy: curl -s --proxy http://$PROXY_HOST:$PROXY_PORT 'URL'""")
     except Exception:
         pass
 

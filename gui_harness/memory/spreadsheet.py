@@ -267,7 +267,7 @@ if let results = request.results {
     try:
         # Write Swift code to temp file
         swift_path = "/tmp/_ocr_vision.swift"
-        with open(swift_path, "w") as f:
+        with open(swift_path, "w", encoding="utf-8") as f:
             f.write(swift_code)
         
         r = subprocess.run(["swift", swift_path, image_path],

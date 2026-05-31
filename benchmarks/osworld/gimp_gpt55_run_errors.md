@@ -132,11 +132,11 @@ Latest recheck accounting excluding skipped task 6: 14 PASS, 1 unresolved numeri
 | HuggingFace asset download instability | 1, 6, 10, 11, 13, 16, 26 | SSL EOF, read timeout, curl fallback | Setup usually recovers, but task 26 first attempt timed out before retry succeeded. |
 | Setup/download timeout | 26 | First task 26 attempt ended `SETUP_DOWNLOAD_TIMEOUT` after repeated HuggingFace failures | Retried in-place and overwrote `task_26.log` with completed evaluator run per handoff policy. |
 | Missing proxy config warning | 1-26 | `evaluation_examples/settings/proxy/dataimpulse.json` not found | Non-blocking for passing tasks; likely environment warning. |
-| Expired auth profile | During task13-20 retry | `openai-codex:default` expired on 2026-05-10 while `openai-codex:fzkuji+alt1@gmail.com` was valid | Removed expired profile and fixed auth order so only the valid profile remains. |
+| Expired auth profile | During task13-20 retry | `openai-codex:default` expired on 2026-05-10 while `openai-codex:user+alt1@example.com` was valid | Removed expired profile and fixed auth order so only the valid profile remains. |
 
 ## Handoff Notes
 
-- The expired `openai-codex:default` profile was removed from `~/.openclaw/agents/main/agent/auth-profiles.json`; `auth-state.json` order now points only to `openai-codex:fzkuji+alt1@gmail.com`.
+- The expired `openai-codex:default` profile was removed from `~/.openclaw/agents/main/agent/auth-profiles.json`; `auth-state.json` order now points only to `openai-codex:user+alt1@example.com`.
 - Confirm why `Agent session failed` still appears without detailed traceback in runner logs; the traceback-improvement patch may not be active in this dependency path.
 - Debug why a failed `verify_step()`, export, or locate/drag failure leaves `/tmp/gui_agent_screen.png` unreadable and causes repeated `need at least one array to stack`.
 - For failed export/task-output cases, task 14 is now resolved after VM recovery. Task 6 is skipped because manual eval passed but autonomous reruns are polluted by VM filesystem instability; task 12 remains the main unresolved scored failure.

@@ -12,10 +12,13 @@ package refactors in OpenProgram do not force matching changes here.
 from __future__ import annotations
 
 import importlib
+import os
 import types
 from typing import Callable
 
 from openprogram import agentic_function
+
+from gui_harness.error_monitor import infer_phase_from_stack, record_runtime_error
 
 
 def _load_create_runtime() -> Callable:
@@ -42,12 +45,26 @@ def _load_create_runtime() -> Callable:
     raise ImportError(f"No compatible OpenProgram create_runtime found. {details}")
 
 
+def _default_max_retries() -> int:
+    raw = os.environ.get("GUI_HARNESS_OPENPROGRAM_MAX_RETRIES", "5")
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return 5
+
+
 def create_runtime(provider: str | None = None, model: str | None = None, **kwargs):
     """Create an OpenProgram runtime without binding to one provider module path."""
     create = _load_create_runtime()
     if model:
         kwargs["model"] = model
+    kwargs.setdefault("max_retries", _default_max_retries())
     runtime = create(provider=provider, **kwargs)
+    # Some provider runtimes accept-and-ignore compatibility kwargs. Apply the
+    # retry budget after construction as well so Harness callers get the
+    # requested behavior consistently.
+    if hasattr(runtime, "max_retries"):
+        runtime.max_retries = max(1, int(kwargs["max_retries"]))
     _disable_default_openprogram_tools(runtime)
     return runtime
 
@@ -66,7 +83,14 @@ def _disable_default_openprogram_tools(runtime) -> None:
 
     def exec_without_default_tools(self, *args, **exec_kwargs):
         if "tools" in exec_kwargs and exec_kwargs["tools"] is not None:
-            return exec_fn(*args, **exec_kwargs)
+            try:
+                return exec_fn(*args, **exec_kwargs)
+            except Exception as exc:
+                content = exec_kwargs.get("content")
+                if content is None and args:
+                    content = args[0]
+                record_runtime_error(exc, phase=infer_phase_from_stack(), content=content)
+                raise
 
         # Runtime.exec currently only publishes _current_tools when the value
         # is truthy, so passing tools=[] alone is not enough to suppress the
@@ -74,7 +98,14 @@ def _disable_default_openprogram_tools(runtime) -> None:
         runtime_mod = importlib.import_module("openprogram.agentic_programming.runtime")
         token = runtime_mod._current_tools.set([])
         try:
-            return exec_fn(*args, **exec_kwargs)
+            try:
+                return exec_fn(*args, **exec_kwargs)
+            except Exception as exc:
+                content = exec_kwargs.get("content")
+                if content is None and args:
+                    content = args[0]
+                record_runtime_error(exc, phase=infer_phase_from_stack(), content=content)
+                raise
         finally:
             runtime_mod._current_tools.reset(token)
 

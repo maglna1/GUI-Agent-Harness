@@ -36,7 +36,7 @@ from gui_harness.openprogram_compat import agentic_function
 
 from gui_harness.perception import screenshot, ocr, detector
 from gui_harness.memory import app_memory
-from gui_harness.planning import active_localization
+from gui_harness.planning import active_localization, screenspot_locator
 
 # ═══════════════════════════════════════════
 # Phase 1: Detection
@@ -896,6 +896,29 @@ def locate_target(
     ]
     if ocr_snippets:
         print(f"  [locate] OCR[:20] = {' | '.join(ocr_snippets)}", file=sys.stderr)
+
+    if app_name == "screenspot_pro":
+        print("  [locate] ScreenSpot locator enabled; skipping memory/Phase4", file=sys.stderr)
+        located = screenspot_locator.screenspot_locate(
+            task=task,
+            target=target,
+            img_path=img_path,
+            img_w=detection["img_w"],
+            img_h=detection["img_h"],
+            candidates=base_active_candidates,
+            runtime=runtime,
+            work_dir=os.environ.get("GUI_HARNESS_ACTIVE_LOC_DIR"),
+        )
+        if located:
+            located["timing"] = _timing
+            print(
+                f"  [locate] ScreenSpot locator result: name='{located.get('name', '?')}' "
+                f"at ({located.get('cx', 0)}, {located.get('cy', 0)})",
+                file=sys.stderr,
+            )
+            return located
+        print("  [locate] ScreenSpot locator found no verified target", file=sys.stderr)
+        return None
 
     # Phase 1.5: OCR labels have coordinates already, so handle obvious text
     # targets before spending a model call on the same list.

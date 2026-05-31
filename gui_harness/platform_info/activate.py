@@ -48,12 +48,12 @@ def activate(remote_info=None):
     if os.path.exists(guide_path):
         print(f"## Platform Guide ({info['platform_guide']})")
         print()
-        print(open(guide_path).read())
+        print(open(guide_path, encoding="utf-8").read())
     else:
         print(f"⚠️ No platform guide found for: {info['platform_guide']}")
-    
+
     # Copy platform-specific actions to _actions.yaml
-    platform_map = {"Darwin": "macos", "Linux": "linux"}
+    platform_map = {"Darwin": "macos", "Linux": "linux", "Windows": "windows"}
     platform_key = platform_map.get(info['os'], info['os'].lower())
     actions_src = os.path.join(base_dir, "actions", f"_actions_{platform_key}.yaml")
     actions_dst = os.path.join(base_dir, "actions", "_actions.yaml")
@@ -77,7 +77,7 @@ def activate(remote_info=None):
             print()
             print(f"### Remote Platform Guide ({remote_guide})")
             print()
-            print(open(remote_guide_path).read())
+            print(open(remote_guide_path, encoding="utf-8").read())
         
         print()
         print("### Dual-Platform Operation")

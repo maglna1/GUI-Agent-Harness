@@ -84,7 +84,8 @@ def build_catalog(available: dict) -> str:
                 detail += f": {param_info['description']}"
             opts = param_info.get("options")
             if opts:
-                detail += f" (options: {', '.join(f'\"{o}\"' for o in opts)})"
+                option_text = ", ".join(f'"{o}"' for o in opts)
+                detail += f" (options: {option_text})"
             param_details.append(detail)
         sig = f"{name}({', '.join(llm_params)})" if llm_params else f"{name}()"
         lines.append(sig)
@@ -977,7 +978,7 @@ def save_workflow_record(result: dict, app_name: str):
 
         ts = time.strftime("%Y%m%d_%H%M%S")
         record_path = workflows_dir / f"workflow_{ts}.json"
-        with open(record_path, "w") as f:
+        with open(record_path, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, default=str)
     except Exception as e:
         print(f"  [workflow] save error: {e}", file=sys.stderr)

@@ -129,7 +129,7 @@ def _atomic_write_json(path, data):
     bak_path = path.with_suffix(path.suffix + ".bak")
 
     # Write to temp file first
-    with open(tmp_path, "w") as f:
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.flush()
         os.fsync(f.fileno())
@@ -137,10 +137,10 @@ def _atomic_write_json(path, data):
     # Rotate: current → backup, temp → current
     if path.exists():
         try:
-            path.rename(bak_path)
+            os.replace(path, bak_path)
         except OSError:
             pass  # backup failed, not critical
-    tmp_path.rename(path)
+    os.replace(tmp_path, path)
 
 
 def load_components(app_dir):
@@ -254,7 +254,7 @@ def migrate_profile_if_needed(app_dir):
 
     # Rename old profile.json → profile.json.bak
     bak_path = app_dir / "profile.json.bak"
-    profile_path.rename(bak_path)
+    os.replace(profile_path, bak_path)
     print(f"  📦 Migrated {profile_path} → split files (meta/components/states/transitions)")
 
 
@@ -581,7 +581,7 @@ def load_workflows(app_dir):
 def save_workflows(app_dir, workflows):
     """Save workflows.json to app/site directory."""
     wf_path = Path(app_dir) / "workflows.json"
-    with open(wf_path, "w") as f:
+    with open(wf_path, "w", encoding="utf-8") as f:
         json.dump(workflows, f, indent=2, ensure_ascii=False)
 
 

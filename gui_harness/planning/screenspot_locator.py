@@ -24,6 +24,7 @@ from PIL import Image
 
 from gui_harness.planning import active_localization as active
 from gui_harness.utils import parse_json
+from gui_harness.error_monitor import reraise_if_fatal
 
 
 def _env_int(name: str, default: int, minimum: int = 1) -> int:
@@ -516,7 +517,8 @@ Reply with ONLY JSON:
         rx = int(round(float(parsed.get("x", 0))))
         ry = int(round(float(parsed.get("y", 0))))
         confidence = float(parsed.get("confidence", 0) or 0)
-    except Exception:
+    except Exception as exc:
+        reraise_if_fatal(exc)  # auth/timeout/transport must reach the runner
         return None
     if rx <= 0 or ry <= 0 or rx > img_w or ry > img_h:
         return None

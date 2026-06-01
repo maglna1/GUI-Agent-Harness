@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw
 
 from gui_harness.perception import detector
 from gui_harness.utils import parse_json
+from gui_harness.error_monitor import reraise_if_fatal
 
 
 def enabled() -> bool:
@@ -317,6 +318,7 @@ Reply with ONLY JSON:
         ])
         result = parse_json(reply)
     except Exception as exc:
+        reraise_if_fatal(exc)  # auth/timeout/transport must reach the runner
         result = {
             "contains_target": "uncertain",
             "evidence": f"parse/runtime error: {exc.__class__.__name__}",
@@ -391,7 +393,8 @@ Reply with ONLY JSON:
         if selected_id:
             selected_candidate = _candidate_by_id(crop_candidates, selected_id)
         confidence = float(parsed.get("confidence", 0) or 0)
-    except Exception:
+    except Exception as exc:
+        reraise_if_fatal(exc)  # auth/timeout/transport must reach the runner
         return None
     if selected_candidate:
         selected_box = _candidate_box(selected_candidate)
@@ -574,6 +577,7 @@ Reply with ONLY JSON:
                         "reasoning": item.get("reasoning", ""),
                     })
         except Exception as exc:
+            reraise_if_fatal(exc)  # auth/timeout/transport must reach the runner
             print(
                 f"  [crop_first] region proposal failed: {exc.__class__.__name__}: {exc}",
                 file=__import__("sys").stderr,

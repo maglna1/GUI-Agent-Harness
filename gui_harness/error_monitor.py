@@ -87,12 +87,43 @@ def classify_exception(
     low = text.lower()
     has_provider_transport = _has_any(text, PROVIDER_TRANSPORT_MARKERS)
 
+    # Prefer the provider's OWN structured reason when present —
+    # OpenProgram's runtime.exec() raises a typed
+    # ``LLMError(reason=ErrorReason.X, retryable=...)``, which is far more
+    # reliable than grepping the message. (A SampleTimeoutError carries no
+    # ``.reason`` and falls through to the text rules below.)
+    reason = getattr(exc, "reason", None)
+    reason_val = getattr(reason, "value", reason)  # ErrorReason enum → str
+    reason_map = {
+        "auth": ("provider_auth", False),
+        "authz": ("provider_auth", False),
+        "rate_limit": ("provider_rate_limit", True),
+        "provider": ("provider_transport", True),
+        "transport": ("provider_transport", True),
+        "timeout": ("provider_timeout", bool(getattr(exc, "retryable", False))),
+        "context": ("provider_invalid_request", False),
+        "policy": ("provider_invalid_request", False),
+        "invalid": ("provider_invalid_request", False),
+    }
+    if isinstance(reason_val, str) and reason_val in reason_map:
+        category, retryable = reason_map[reason_val]
+        return {
+            "category": category,
+            "retryable": retryable,
+            "phase": phase or infer_phase_from_text(traceback_text),
+        }
+
     if "sampletimeouterror" in low or "sample exceeded watchdog timeout" in low:
         category = "provider_timeout" if has_provider_transport else "sample_timeout"
         retryable = has_provider_transport
     elif "http 429" in low or "rate_limit" in low:
         category = "provider_rate_limit"
         retryable = True
+    elif ("http 401" in low or "http 403" in low or "unauthorized" in low
+          or "invalid api key" in low or "invalid_api_key" in low
+          or "reason=auth" in low or "login expired" in low):
+        category = "provider_auth"
+        retryable = False
     elif has_provider_transport or "http 500" in low or "http 502" in low or "http 503" in low or "http 504" in low:
         category = "provider_transport"
         retryable = True
@@ -112,6 +143,30 @@ def classify_exception(
         "retryable": retryable,
         "phase": inferred_phase,
     }
+
+
+def reraise_if_fatal(exc: BaseException) -> None:
+    """Re-raise provider errors a broad ``except Exception`` must NOT swallow.
+
+    The locator wraps ``runtime.exec(...) + parse_json(...)`` in
+    ``except Exception`` to recover from malformed model output. But that
+    same net also catches OpenProgram's structured ``LLMError`` (auth,
+    timeout, transport) and turns a real provider failure into a silent
+    "uncertain" fallback — so the runner never sees the auth error and
+    keeps burning samples on a dead credential. Call this first inside
+    those handlers: it re-raises the errors the runner must classify /
+    stop on, while genuine parse errors fall through to the fallback.
+
+    ``ExecInterrupt`` is a ``BaseException`` so ``except Exception`` already
+    lets it through; we still re-raise it explicitly in case a caller used
+    a broader ``except BaseException``.
+    """
+    try:
+        from openprogram.providers.utils.errors import LLMError, ExecInterrupt
+    except Exception:
+        return
+    if isinstance(exc, (LLMError, ExecInterrupt)):
+        raise exc
 
 
 def _summarize_content(content: Any) -> dict[str, Any]:

@@ -232,6 +232,21 @@ def main() -> int:
     out_dir = REPO_ROOT / "runs/screenspot_pro" / f"{run_label}_{timestamp}"
     out_dir.mkdir(parents=True, exist_ok=True)
     plan_summary = build_plan(out_dir, datasets, args.shards)
+    metadata = {
+        "run_dir": str(out_dir.relative_to(REPO_ROOT)),
+        "datasets": datasets,
+        "plan": plan_summary,
+        "provider": args.provider,
+        "model": args.model,
+        "app_name": args.app_name,
+        "shards": args.shards,
+        "sample_timeout_s": args.sample_timeout_s,
+        "exec_timeout_s": args.exec_timeout_s,
+        "runtime_retries": args.runtime_retries,
+        "retry_provider_errors": args.retry_provider_errors,
+        "created_at": datetime.now().astimezone().isoformat(),
+    }
+    (out_dir / "metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
     script = build_screen_script(
         out_dir=out_dir,
         datasets=datasets,
@@ -247,16 +262,7 @@ def main() -> int:
     )
     (out_dir / "run.sh").write_text(script)
     subprocess.run(["screen", "-dmS", args.screen_name, "bash", "-lc", script], cwd=REPO_ROOT, check=True)
-    print(json.dumps({
-        "started": True,
-        "screen_name": args.screen_name,
-        "run_dir": str(out_dir.relative_to(REPO_ROOT)),
-        "datasets": datasets,
-        "plan": plan_summary,
-        "provider": args.provider,
-        "model": args.model,
-        "shards": args.shards,
-    }, ensure_ascii=False, indent=2))
+    print(json.dumps({"started": True, "screen_name": args.screen_name, **metadata}, ensure_ascii=False, indent=2))
     return 0
 
 

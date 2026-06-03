@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -34,27 +35,65 @@ def load_plan(run_dir: Path) -> list[dict[str, Any]]:
     for line in plan_path.read_text().splitlines():
         if not line.strip():
             continue
-        dataset, annotation, index, sample_id, shard = line.split("\t")[:5]
+        dataset, annotation, index, sample_id, shard_or_reason = line.split("\t")[:5]
         split = annotation.removeprefix(f"screenspot_{dataset}_").removesuffix(".json")
+        try:
+            shard = int(shard_or_reason)
+            retry_reason = None
+        except ValueError:
+            shard = None
+            retry_reason = shard_or_reason
         entries.append({
             "dataset": dataset,
             "annotation": annotation,
             "split": split,
             "index": int(index),
             "sample_id": sample_id,
-            "shard": int(shard),
+            "shard": shard,
+            "retry_reason": retry_reason,
         })
     return entries
 
 
 def result_rows(run_dir: Path, dataset: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    shard_dir = run_dir / dataset / "shards"
-    for path in sorted(shard_dir.glob("shard_*.jsonl")):
-        if path.name.endswith(".errors.jsonl"):
+    shard_dirs = [run_dir / dataset / "shards"]
+    if not shard_dirs[0].exists():
+        shard_dirs.append(run_dir / "shards")
+    for shard_dir in shard_dirs:
+        if not shard_dir.exists():
             continue
-        rows.extend(read_jsonl(path))
+        for path in sorted(shard_dir.glob("*.jsonl")):
+            if path.name.endswith(".errors.jsonl"):
+                continue
+            rows.extend(read_jsonl(path))
     return rows
+
+
+def load_run_metadata(run_dir: Path) -> dict[str, Any]:
+    metadata_path = run_dir / "metadata.json"
+    if metadata_path.exists():
+        try:
+            metadata = json.loads(metadata_path.read_text())
+            return {
+                "provider": metadata.get("provider"),
+                "model": metadata.get("model"),
+            }
+        except json.JSONDecodeError:
+            pass
+
+    run_script = run_dir / "run.sh"
+    metadata: dict[str, Any] = {"provider": None, "model": None}
+    if not run_script.exists():
+        return metadata
+    text = run_script.read_text(errors="replace")
+    provider = re.search(r"--provider\s+([^\s\\]+)", text)
+    model = re.search(r"--model\s+([^\s\\]+)", text)
+    if provider:
+        metadata["provider"] = provider.group(1).strip("'\"")
+    if model:
+        metadata["model"] = model.group(1).strip("'\"")
+    return metadata
 
 
 def latest_by_sample(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -111,6 +150,7 @@ def summarize(run_dir: Path) -> dict[str, Any]:
     datasets = sorted({entry["dataset"] for entry in plan})
     payload: dict[str, Any] = {
         "run_dir": str(run_dir.relative_to(REPO_ROOT)),
+        **load_run_metadata(run_dir),
         "datasets": {},
     }
     for dataset in datasets:
@@ -143,6 +183,8 @@ def format_report(payload: dict[str, Any], alive: bool | None) -> str:
     dataset_names = "/".join(payload["datasets"].keys())
     lines = [f"ScreenSpot {dataset_names} full:"]
     lines.append(f"run: {payload['run_dir']}")
+    if payload.get("provider") or payload.get("model"):
+        lines.append(f"model: {payload.get('provider') or '?'} / {payload.get('model') or '?'}")
     if alive is not None:
         lines.append(f"screen: {'alive' if alive else 'not alive'}")
     for dataset, stats in payload["datasets"].items():

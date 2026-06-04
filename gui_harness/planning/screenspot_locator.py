@@ -246,6 +246,8 @@ class ScreenSpotLocatorConfig:
     enable_final_recheck: bool = False
     enable_legacy_pipeline: bool = False
     enable_crop_check: bool = True
+    crop_check_mode: str = "every"        # "every"=check each round; "last_only"=only the final round; "off"=never (same as enable_crop_check False)
+    crop_check_reject_mode: str = "widen" # on reject: "widen"=back out to a wider box; "restart_full"=reset to the full image and re-crop from scratch
     enable_crop_retry: bool = True
     crop_retry_limit: int = 3
     enable_final_recrop: bool = True
@@ -316,6 +318,16 @@ class ScreenSpotLocatorConfig:
             enable_final_recheck=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_FINAL_RECHECK", False),
             enable_legacy_pipeline=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_LEGACY_PIPELINE", False),
             enable_crop_check=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_CROP_CHECK", True),
+            crop_check_mode=_env_choice(
+                "GUI_HARNESS_SCREENSPOT_CROP_CHECK_MODE",
+                "every",
+                {"every", "last_only", "off"},
+            ),
+            crop_check_reject_mode=_env_choice(
+                "GUI_HARNESS_SCREENSPOT_CROP_CHECK_REJECT_MODE",
+                "widen",
+                {"widen", "restart_full"},
+            ),
             enable_crop_retry=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_CROP_RETRY", True),
             crop_retry_limit=_env_int("GUI_HARNESS_SCREENSPOT_CROP_RETRY_LIMIT", 3, minimum=0),
             enable_final_recrop=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_FINAL_RECROP", True),
@@ -568,7 +580,19 @@ coordinates:
                 break
 
             gate = None
-            if config.enable_crop_check:
+            # When this crop's check runs depends on crop_check_mode:
+            #   "every"     — check every round (default)
+            #   "last_only" — only on the final round (round_idx == rounds-1)
+            #   "off"       — never
+            # enable_crop_check=False also disables it entirely (back-compat).
+            _mode = config.crop_check_mode
+            _is_last_round = round_idx == config.iterative_rounds - 1
+            _check_now = (
+                config.enable_crop_check
+                and _mode != "off"
+                and (_mode != "last_only" or _is_last_round)
+            )
+            if _check_now:
                 gate = _run_crop_check(
                     task,
                     target,
@@ -598,7 +622,12 @@ coordinates:
                     if attempt_idx + 1 < max_attempts:
                         continue
                     history.append(entry)
-                    current_box = _iterative_restart_box(current_box, history, img_w, img_h)
+                    # On reject after retries: widen back, or restart from the
+                    # full image (re-crop from scratch) per crop_check_reject_mode.
+                    if config.crop_check_reject_mode == "restart_full":
+                        current_box = [0, 0, img_w, img_h]
+                    else:
+                        current_box = _iterative_restart_box(current_box, history, img_w, img_h)
                     break
 
             old_area = _box_area(crop_box)

@@ -225,10 +225,15 @@ class ScreenSpotLocatorConfig:
     enable_final_recheck: bool = False
     enable_legacy_pipeline: bool = False
     enable_crop_check: bool = True
+    enable_crop_retry: bool = True
     crop_retry_limit: int = 3
+    enable_final_recrop: bool = True
+    final_recrop_limit: int = 0
     enable_staged_crop: bool = True
     iterative_stage1_min_area_pct: int = 20
     iterative_stage2_min_area_pct: int = 8
+    context_mode: str = "single"
+    accumulate_images: bool = False
     runtime_timeout_s: int = 180
 
     @classmethod
@@ -278,10 +283,19 @@ class ScreenSpotLocatorConfig:
             enable_final_recheck=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_FINAL_RECHECK", False),
             enable_legacy_pipeline=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_LEGACY_PIPELINE", False),
             enable_crop_check=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_CROP_CHECK", True),
+            enable_crop_retry=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_CROP_RETRY", True),
             crop_retry_limit=_env_int("GUI_HARNESS_SCREENSPOT_CROP_RETRY_LIMIT", 3, minimum=0),
+            enable_final_recrop=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_FINAL_RECROP", True),
+            final_recrop_limit=_env_int("GUI_HARNESS_SCREENSPOT_FINAL_RECROP_LIMIT", 0, minimum=0),
             enable_staged_crop=_env_bool("GUI_HARNESS_SCREENSPOT_ENABLE_STAGED_CROP", True),
             iterative_stage1_min_area_pct=_env_int("GUI_HARNESS_SCREENSPOT_ITERATIVE_STAGE1_MIN_AREA_PCT", 20),
             iterative_stage2_min_area_pct=_env_int("GUI_HARNESS_SCREENSPOT_ITERATIVE_STAGE2_MIN_AREA_PCT", 8),
+            context_mode=_env_choice(
+                "GUI_HARNESS_SCREENSPOT_CONTEXT_MODE",
+                "single",
+                {"single", "accumulate"},
+            ),
+            accumulate_images=_env_bool("GUI_HARNESS_SCREENSPOT_ACCUMULATE_IMAGES", False),
             runtime_timeout_s=_env_int("GUI_HARNESS_SCREENSPOT_RUNTIME_TIMEOUT_S", 180, minimum=0),
         )
 
@@ -354,9 +368,14 @@ def _iterative_zoom_locate(
     current_box = [0, 0, img_w, img_h]
     history: list[dict] = []
     stop_refining = False
+    # Accumulated prior-turn blocks for context_mode == "accumulate". Each
+    # accepted crop turn appends its sent user blocks + the model reply, so the
+    # next round's prompt = rules prefix + thread_blocks + new turn. Stays empty
+    # (and unused) in single mode, keeping that path byte-identical.
+    thread_blocks: list[dict] = []
     for round_idx in range(config.iterative_rounds):
         rejected_attempts: list[dict] = []
-        max_attempts = 1 + (config.crop_retry_limit if config.enable_crop_check else 0)
+        max_attempts = 1 + (config.crop_retry_limit if config.enable_crop_retry else 0)
         for attempt_idx in range(max_attempts):
             stage_idx = _iterative_committed_crop_count(history)
             crop_path, crop_box, display_scale = _render_iterative_crop(
@@ -394,11 +413,15 @@ Rejected crop attempts from this same current crop:
 Detected OCR/component candidates inside this crop, shown in displayed-crop
 coordinates:
 {candidate_lines or "(none)"}"""
+            user_blocks = [
+                {"type": "text", "text": context},
+                {"type": "image", "path": crop_path},
+            ]
             try:
                 reply = _runtime_exec(runtime, config, content=[
                     _cacheable_prefix_block(_CROP_DECISION_RULES),
-                    {"type": "text", "text": context},
-                    {"type": "image", "path": crop_path},
+                    *thread_blocks,
+                    *user_blocks,
                 ])
                 parsed = parse_json(reply)
             except Exception as exc:
@@ -531,6 +554,17 @@ coordinates:
             entry["next_box"] = next_box
             entry["area_fraction"] = round(new_area / old_area, 4) if old_area else 1.0
             history.append(entry)
+            if config.context_mode == "accumulate":
+                # Carry this accepted turn forward so next round's prompt grows a
+                # byte-stable prefix. Only accepted crops join the thread (gate
+                # rejections / recrops stay out, keeping the chain clean).
+                thread_blocks.append({"type": "text", "text": context})
+                if config.accumulate_images:
+                    thread_blocks.append({"type": "image", "path": crop_path})
+                thread_blocks.append({
+                    "type": "text",
+                    "text": f"[assistant round {round_idx + 1} decision]\n{reply}",
+                })
             print(
                 f"  [screenspot_zoom] round {round_idx + 1} attempt {attempt_idx + 1}: "
                 f"{crop_box} -> {next_box} area={entry['area_fraction']}",
@@ -548,6 +582,10 @@ coordinates:
             break
 
     final_boxes = _iterative_final_box_candidates(current_box, history, img_w, img_h)
+    if not config.enable_final_recrop:
+        final_boxes = final_boxes[:1]
+    elif config.final_recrop_limit > 0:
+        final_boxes = final_boxes[:config.final_recrop_limit]
     for final_attempt_idx, final_box in enumerate(final_boxes):
         located = _iterative_zoom_final_click(
             task,

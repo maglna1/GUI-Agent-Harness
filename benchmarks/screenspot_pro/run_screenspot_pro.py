@@ -467,6 +467,40 @@ def should_retry_result(result: dict) -> bool:
     }
 
 
+def load_locator_config(config_path: str):
+    """Build a ScreenSpotLocatorConfig from a single YAML/JSON file.
+
+    The file is the whole config (LlamaFactory-style). Every key must be a
+    ScreenSpotLocatorConfig field; keys starting with '_' are treated as
+    comments and ignored. Unknown keys raise, so a typo fails loud instead of
+    silently falling back to a default.
+    """
+    from gui_harness.planning.screenspot_locator import ScreenSpotLocatorConfig
+    import dataclasses
+
+    path = (
+        Path(config_path)
+        if Path(config_path).is_absolute()
+        else (REPO_ROOT / config_path)
+    ).resolve()
+    raw = path.read_text()
+    if path.suffix.lower() in {".yaml", ".yml"}:
+        import yaml
+        file_dict = yaml.safe_load(raw) or {}
+    else:
+        file_dict = json.loads(raw)
+    if not isinstance(file_dict, dict):
+        raise SystemExit(f"--config {path} must contain a YAML/JSON object")
+    file_dict = {k: v for k, v in file_dict.items() if not str(k).startswith("_")}
+    allowed = {f.name for f in dataclasses.fields(ScreenSpotLocatorConfig)}
+    unknown = sorted(set(file_dict) - allowed)
+    if unknown:
+        raise SystemExit(
+            f"--config {path} has unknown keys: {unknown}\nallowed: {sorted(allowed)}"
+        )
+    return ScreenSpotLocatorConfig(**file_dict)
+
+
 def run_one(
     sample: dict,
     img_path: Path,
@@ -661,6 +695,17 @@ def main() -> None:
         help="JSONL runtime error event path. Default: <output>.errors.jsonl. Use 'off' to disable.",
     )
     parser.add_argument("--skip-existing", action="store_true")
+    parser.add_argument(
+        "--config",
+        default="",
+        help=(
+            "Path to a JSON (or .yaml/.yml) locator config file listing "
+            "ScreenSpotLocatorConfig fields. Precedence: dataclass default "
+            "< config file < environment variable (a set env var still wins, "
+            "so ad-hoc env overrides keep working). Keys starting with '_' are "
+            "ignored (use for comments)."
+        ),
+    )
     args = parser.parse_args()
 
     # Arm a call-level deadline on EVERY runtime.exec() (OpenProgram reads
@@ -707,7 +752,14 @@ def main() -> None:
     # overridden from one place. from_env() reads all existing env knobs, so
     # behaviour is unchanged unless an env/flag is set.
     from gui_harness.planning.screenspot_locator import ScreenSpotLocatorConfig
-    locator_config = ScreenSpotLocatorConfig.from_env()
+    # Config file is the single source of truth (LlamaFactory-style): pass
+    # --config a.yaml and that file fully defines the locator. No env vars.
+    # Without --config, fall back to dataclass defaults.
+    if args.config:
+        locator_config = load_locator_config(args.config)
+        print(f"  [run] locator config from {args.config}", file=sys.stderr)
+    else:
+        locator_config = ScreenSpotLocatorConfig()
     if args.sample_timeout_s > 0:
         signal.signal(signal.SIGALRM, raise_sample_timeout)
 

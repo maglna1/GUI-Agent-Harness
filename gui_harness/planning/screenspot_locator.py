@@ -412,7 +412,10 @@ Rejected crop attempts from this same current crop:
 
 Detected OCR/component candidates inside this crop, shown in displayed-crop
 coordinates:
-{candidate_lines or "(none)"}"""
+{candidate_lines or "(none)"}
+
+Reply with ONLY JSON:
+{{"action": "crop|final|recrop", "bbox": [x1, y1, x2, y2], "target_visible_element": "...", "confidence": 0.0, "reasoning": "..."}}"""
             user_blocks = [
                 {"type": "text", "text": context},
                 {"type": "image", "path": crop_path},
@@ -1020,7 +1023,10 @@ proposed magenta crop:
 Proposal rationale:
 target_visible_element={proposal.get('target_visible_element', '')}
 reasoning={proposal.get('reasoning', '')}
-confidence={proposal.get('confidence', '')}"""
+confidence={proposal.get('confidence', '')}
+
+Reply with ONLY JSON:
+{{"action": "accept|reject", "target_inside": true, "context_sufficient": true, "discarded_plausible_targets": false, "confidence": 0.0, "reasoning": "..."}}"""
     try:
         parsed = parse_json(_runtime_exec(runtime, config, content=[
             _cacheable_prefix_block(_COMMIT_GATE_RULES),
@@ -1160,7 +1166,10 @@ Crop history:
 {_format_iterative_history(history)}
 
 Detected OCR/component candidates in this final crop:
-{candidate_lines or "(none)"}"""
+{candidate_lines or "(none)"}
+
+Reply with ONLY JSON:
+{{"action": "click|recrop", "candidate_id": "z0 or empty", "x": 0, "y": 0, "target_visible_element": "...", "confidence": 0.0, "reasoning": "..."}}"""
     try:
         reply = _runtime_exec(runtime, config, content=[
             _cacheable_prefix_block(_FINAL_CLICK_RULES),

@@ -234,7 +234,9 @@ class ScreenSpotLocatorConfig:
     iterative_final_max_scale: int = 8
     iterative_final_min_short_side: int = 640
     iterative_final_min_scale: float = 1.0
-    iterative_scale_mode: str = "preserve"  # "preserve"=only enlarge small crops; "fill"=blow up to max_side (origin/main)
+    iterative_scale_mode: str = "preserve"  # "preserve"=only enlarge small crops; "fill"=blow up to max_side (origin/main); "target_pixels"=scale each crop to ~a fixed pixel count
+    iterative_target_pixels: int = 0        # scale_mode=target_pixels: target pixel count for per-round crops (0=off). e.g. 1500000 ~= 1.5MP
+    iterative_final_target_pixels: int = 0  # same for the final-click crop (can be larger for precision)
     iterative_prompt_layout: str = "cache"  # "cache"=rules hoisted to a cacheable prefix; "legacy"=rules inline after dynamic fields, byte-matching origin/main
     iterative_max_area_pct: int = 0      # 0 = no per-round area cap (model decides zoom amount)
     iterative_padding_pct: int = 8
@@ -301,8 +303,10 @@ class ScreenSpotLocatorConfig:
             iterative_scale_mode=_env_choice(
                 "GUI_HARNESS_SCREENSPOT_ITERATIVE_SCALE_MODE",
                 "preserve",
-                {"preserve", "fill"},
+                {"preserve", "fill", "target_pixels"},
             ),
+            iterative_target_pixels=_env_int("GUI_HARNESS_SCREENSPOT_ITERATIVE_TARGET_PIXELS", 0, minimum=0),
+            iterative_final_target_pixels=_env_int("GUI_HARNESS_SCREENSPOT_ITERATIVE_FINAL_TARGET_PIXELS", 0, minimum=0),
             iterative_prompt_layout=_env_choice(
                 "GUI_HARNESS_SCREENSPOT_ITERATIVE_PROMPT_LAYOUT",
                 "cache",
@@ -433,6 +437,7 @@ def _iterative_zoom_locate(
                 min_short_side=config.iterative_min_short_side,
                 min_scale=config.iterative_min_scale,
                 scale_mode=config.iterative_scale_mode,
+                target_pixels=config.iterative_target_pixels,
             )
             candidate_lines, _round_candidates = _iterative_candidate_lines(
                 candidates,
@@ -900,6 +905,7 @@ def _render_iterative_crop(
     min_short_side: int = 0,
     min_scale: float = 1.0,
     scale_mode: str = "preserve",
+    target_pixels: int = 0,
 ) -> tuple[str, list[int], float]:
     """Render a crop at a chosen display scale.
 
@@ -926,7 +932,19 @@ def _render_iterative_crop(
     width = max(1, x2 - x1)
     height = max(1, y2 - y1)
     floor = float(min_scale) if min_scale and min_scale > 0 else 0.1
-    if scale_mode == "fill":
+    if scale_mode == "target_pixels" and target_pixels > 0:
+        # Adaptive: scale every crop so its pixel count (~ file size) lands near
+        # target_pixels. Small crops get enlarged a lot, crops already at/over the
+        # target are left alone (never shrink). scale = sqrt(target / crop_area),
+        # clamped to [1.0, max_scale]. This keeps the image fed to the model a
+        # roughly constant size regardless of crop area, and bounds the long side
+        # automatically (so it never blows past the provider's image-size limit).
+        crop_area = float(width * height)
+        scale = (float(target_pixels) / crop_area) ** 0.5 if crop_area > 0 else 1.0
+        if max_scale > 0:
+            scale = min(scale, float(max_scale))
+        scale = max(1.0, scale)
+    elif scale_mode == "fill":
         # origin/main policy: blow every crop up to fill max_side (long side).
         cap = float(max_scale) if max_scale > 0 else float("inf")
         if max_side > 0:
@@ -1271,6 +1289,7 @@ def _iterative_zoom_final_click(
         min_short_side=config.iterative_final_min_short_side,
         min_scale=config.iterative_final_min_scale,
         scale_mode=config.iterative_scale_mode,
+        target_pixels=config.iterative_final_target_pixels,
     )
     final_candidates = list(candidates)
     if config.enable_final_candidate_detect:

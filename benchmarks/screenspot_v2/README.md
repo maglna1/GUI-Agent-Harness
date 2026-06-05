@@ -29,8 +29,6 @@ ScreenSpot v2 是 ScreenSpot 系列的多平台 GUI 元素定位基准测试。
 | **Web (tool)** | 120 | 114/6/0 | **95.0%** |
 | **合计** | **1272** | **1219/39/14** | **95.83%** |
 
-## 运行信息
+## 文件
+- `results/gpt_5_5/full_report.md` — 完整报告
 - 运行目录: `runs/screenspot_pro/screenspot_v2_full_20260602_1157/`
-- 脚本: `run.sh`
-- 原始 shard: `runs/screenspot_pro/screenspot_v2_full_20260602_1157/v2/shards/shard_*.jsonl`
-- 错误: 59 个 (provider_transport=13, no_verified_target=1, 其余 runtime)

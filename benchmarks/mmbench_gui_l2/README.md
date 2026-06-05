@@ -1,85 +1,40 @@
 # MMBench-GUI-L2 — GUI 元素定位 (多平台)
 
-MMBench-GUI-L2 是 MMBench 系列的 GUI 元素定位基准测试，覆盖手机/桌面多平台应用。
+MMBench-GUI-L2 是 MMBench 系列的 GUI 元素定位基准测试，覆盖 6 平台（Android/iOS/Linux/macOS/Web/Windows）。
 
 - 模型: **GPT-5.5** (openai-codex)
-- 总样本数: **2109 / 3594** (58.7% 完成)
-- 方法: iterative_zoom (8 rounds)
-- 已完成部分准确率: **92.60%** (1953 correct / 156 wrong / 0 WF)
-- 状态: ⏹ **已停止** (额度原因)
+- 总样本数: **3594 / 3594** (100% 完成) ✅
+- Pipeline: iterative_zoom (8 rounds), legacy (fill/legacy via main_baseline.yaml)
+- 总准确率: **91.52%** (3271 correct / 303 wrong / 20 WF)
 
 ---
 
 ## 运行结果
 
-| 模型 | 进度 | 正确 | 错误 | 准确率 | 状态 |
-|------|------|------|------|--------|------|
-| **GPT-5.5** | 2109/3594 | 1953 | 156 | **92.60%** | ⏹ 已停止 |
+| 模型 | 进度 | 正确 | 错误 | WF | 准确率 | 状态 |
+|------|------|------|------|----|--------|------|
+| **GPT-5.5** | 3594/3594 | 3271 | 303 | 20 | **91.52%** | ✅ 完成 |
 
-## 每应用准确率 (已完成部分)
+## 平台分布 (GPT-5.5)
 
-| 应用 | 平台 | C/W | Acc% |
-|------|------|-----|------|
-| Android Studio | desktop | 4/0 | 100% |
-| Amazon | web | 4/0 | 100% |
-| AppStore | mobile | 23/0 | 100% |
-| App_Market | mobile | 32/0 | 100% |
-| Apple_Music | mobile | 22/4 | 84.6% |
-| Bilibili | web | 60/5 | 92.3% |
-| Calendar | mobile | 62/4 | 93.9% |
-| Camera | mobile | 28/3 | 90.3% |
-| Chrome | desktop | 21/3 | 87.5% |
-| Clock | mobile | 35/3 | 92.1% |
-| Disk_Utility | desktop | 7/1 | 87.5% |
-| Douban | web | 19/0+17/0 | 100% |
-| Douyin | mobile | 36/1 | 97.3% |
-| Firefox | desktop | 41/7 | 85.4% |
-| Fitness | mobile | 25/1 | 96.2% |
-| Gimp | desktop | 17/9 | 65.4% |
-| Github | web | 51/3 | 94.4% |
-| Health | mobile | 65/3 | 95.6% |
-| Home | mobile | 18/0 | 100% |
-| Hupu | web | 46/4 | 92.0% |
-| Kugou | mobile | 36/0 | 100% |
-| LibreOffice_Calc | desktop | 17/8 | 68.0% |
-| LibreOffice_Impress | desktop | 28/3+1/1 | 87.9% |
-| LibreOffice_Writer | desktop | 11/7 | 61.1% |
-| OneNote | desktop | 38/4 | 90.5% |
-| Outlook | desktop | 46/5 | 90.2% |
-| Podcasts | mobile | 51/3 | 94.4% |
-| QQ_Music | mobile | 35/1 | 97.2% |
-| Qidian | web | 32/0 | 100% |
-| Reddit | web | 31/3 | 91.2% |
-| Safari | mobile | 28/3 | 90.3% |
-| Setting | mobile | 25/1 | 96.2% |
-| Settings | mobile | 55/8 | 87.3% |
-| Shortcut | mobile | 23/2 | 92.0% |
-| Slack | desktop | 45/5 | 90.0% |
-| Spotify | desktop | 37/2 | 94.9% |
-| Tencent_Map | mobile | 33/3 | 91.7% |
-| Tencent_Video | mobile | 50/2 | 96.2% |
-| Thunderbird | desktop | 21/6 | 77.8% |
-| Trip | web | 32/2 | 94.1% |
-| Tripsy | mobile | 21/1 | 95.5% |
-| Twitter | mobile | 129/7 | 94.9% |
-| VScode | desktop | 29/7 | 80.6% |
-| Weather | mobile | 10/2 | 83.3% |
-| Weibo | web | 32/0 | 100% |
-| XMind | desktop | 74/5 | 93.7% |
-| Ximalaya | mobile | 35/1 | 97.2% |
-| YouTube | mobile | 35/1+55/3 | 95.7% |
-| Zhihu | web | 32/1 | 97.0% |
-| Zotero | desktop | 20/4+55/3 | 91.5% |
-| common | multi | 26/0 | 100% |
-| screenspot_v2_ios | mobile | 91/1 | 98.9% |
+| 平台 | 样本 | 正确 | 错误 | WF | 准确率 |
+|------|------|------|------|----|--------|
+| **Android** | 711 | 682 | 29 | 0 | 95.9% |
+| **iOS** | 644 | 612 | 32 | 0 | 95.0% |
+| **Web** | 618 | 569 | 46 | 3 | 92.5% |
+| **macOS** | 691 | 610 | 73 | 8 | 89.3% |
+| **Windows** | 543 | 474 | 60 | 9 | 88.8% |
+| **Linux** | 387 | 324 | 63 | 0 | 83.7% |
+| **合计** | **3594** | **3271** | **303** | **20** | **91.52%** |
+
+> 20 个 WF 全部是 `NoVerifiedTarget` — 迭代缩放 8 轮 + 重试后模型仍无法定位的硬骨头（非网络问题）。
 
 ## 运行信息
 - 运行目录: `runs/gui_grounding/gui_grounding_mmbench_gui_l2_full_20260602_2040/`
-- 断点记录: `runs/gui_grounding/gui_grounding_mmbench_gui_l2_full_20260602_2040/STOPPED_20260603_1256.md`
 - 原始 shard: `runs/gui_grounding/gui_grounding_mmbench_gui_l2_full_20260602_2040/mmbench_gui_l2/shards/shard_*.jsonl`
+- 结果文件: `benchmarks/mmbench_gui_l2/results/gpt_5_5/`
 
-## 恢复方法
-```bash
-cd /Users/fzkuji/Documents/GUI\ Agent/GUI-Agent-Harness
-bash runs/gui_grounding/gui_grounding_mmbench_gui_l2_full_20260602_2040/run.sh
-```
+## 文件
+- `results/gpt_5_5/full_report.md` — 汇总报告
+- `results/gpt_5_5/full_summary.json` — 聚合统计
+- `results/gpt_5_5/results.jsonl` — 3594 条逐样本记录

@@ -1,0 +1,24 @@
+{
+  "total": 5479,
+  "correct": 3761,
+  "wrong": 1718,
+  "wrong_format": 0,
+  "accuracy": 68.64,
+  "by_split": {
+    "ui_vision_basic": {
+      "c": 1295,
+      "w": 477,
+      "wf": 0
+    },
+    "ui_vision_functional": {
+      "c": 1188,
+      "w": 584,
+      "wf": 0
+    },
+    "ui_vision_spatial": {
+      "c": 1278,
+      "w": 657,
+      "wf": 0
+    }
+  }
+}

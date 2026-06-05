@@ -36,17 +36,16 @@
 
 ## News
 
-- **[2026-06-05]** 🏆 **MMBench-GUI-L2 91.52%** — GPT-5.5 完成全部 3594 样本（100%），3271 正确 / 303 错误 / 20 WF。iterative_zoom 8 rounds + legacy pipeline。最后 25 个 WF 重试后恢复 5 个。 [Results →](benchmarks/mmbench_gui_l2/)
-- **[2026-06-05]** 🏆 **ScreenSpot Pro 87.9%** — GPT-5.5 完成全部 1581 样本，1390 正确 / 191 错误。5 大子集 23 个专业应用全覆盖。 [Results →](benchmarks/screenspot_pro/results/gpt_5_5/)
-- **[2026-06-02]** 🏆 **ScreenSpot v2 95.83%** — GPT-5.5 完成 1272/1272 样本，1219 正确 / 39 错误 / 14 WF。 [Results →](benchmarks/screenspot_v2/)
-- **[2026-04-18]** 📦 **OpenProgram** — Agentic Programming graduated from concept to product: repo/package/CLI renamed to [OpenProgram](https://github.com/Fzkuji/OpenProgram). Agentic Programming remains the paradigm name; OpenProgram is the shippable framework. Harness imports migrated to `from openprogram import ...`.
-- **[2026-04-14]** 🏆 **OSWorld Multi-Apps 79.8%** — 72.6/91 evaluated tasks. 4-phase step loop + CLI session persistence + PRESERVE FORMAT work habit. [Results →](benchmarks/osworld/multi_apps.md)
-- **[2026-04-07]** 🤖 **Agent-native architecture** — Rebuilt execution core on the [Agentic Programming](https://github.com/Fzkuji/OpenProgram) paradigm, unifying GUI perception and free-form agent actions under a single decision loop. Eliminates task-specific scripting.
-- **[2026-03-30]** 📐 **ImageContext coordinate system** — Replaced dual-space model with `ImageContext` class; scale-independent cropping, fixes crop bugs on non-fullscreen images.
-- **[2026-03-29]** 🎬 **v0.3 — Unified Actions & Cross-Platform GUI** — `gui_action.py` as single entry point. Platform backends auto-selected via `--remote`.
-- **[2026-03-23]** 🏆 **OSWorld Chrome 93.5%** — One attempt (43/46), 97.8% two attempts (45/46). [Results →](benchmarks/osworld/)
-- **[2026-03-23]** 🔄 **Memory overhaul** — Split storage, automatic component forgetting, state merging by Jaccard similarity.
-- **[2026-03-10]** 🚀 **Initial release** — GPA-GUI-Detector + Apple Vision OCR + template matching + per-app visual memory.
+- **[2026-06-05]** 🏆 **MMBench-GUI-L2 91.52%** — GPT-5.5, 3,594 samples. [Results →](benchmarks/mmbench_gui_l2/)
+- **[2026-06-05]** 🏆 **ScreenSpot Pro 87.9%** — GPT-5.5, 1,581 samples across 23 apps. [Results →](benchmarks/screenspot_pro/results/gpt_5_5/)
+- **[2026-06-02]** 🏆 **ScreenSpot v2 95.83%** — GPT-5.5, 1,272 samples. [Results →](benchmarks/screenspot_v2/)
+- **[2026-04-18]** 📦 **OpenProgram** — Renamed from Agentic Programming. [GitHub](https://github.com/Fzkuji/OpenProgram)
+- **[2026-04-14]** 🏆 **OSWorld Multi-Apps 79.8%** — 72.6/91 evaluated. [Results →](benchmarks/osworld/multi_apps.md)
+- **[2026-04-07]** 🤖 **Agent-native architecture** — Unified GUI perception + agent actions under single decision loop.
+- **[2026-03-30]** 📐 **ImageContext** — Scale-independent coordinate system, fixes crop bugs.
+- **[2026-03-29]** 🎬 **v0.3 — Unified Actions** — `gui_action.py` single entry point, auto platform detection.
+- **[2026-03-23]** 🏆 **OSWorld Chrome 93.5%** — 43/46 one attempt, 45/46 two attempts. [Results →](benchmarks/osworld/)
+- **[2026-03-10]** 🚀 **Initial release** — GPA-GUI-Detector + Apple Vision OCR + template matching.
 
 ## What is GUI Agent Harness?
 

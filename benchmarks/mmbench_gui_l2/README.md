@@ -1,40 +1,38 @@
-# MMBench-GUI-L2 — GUI 元素定位 (多平台)
+# MMBench-GUI-L2 — GUI Element Grounding
 
-MMBench-GUI-L2 是 MMBench 系列的 GUI 元素定位基准测试，覆盖 6 平台（Android/iOS/Linux/macOS/Web/Windows）。
+Multi-platform GUI element grounding benchmark covering 6 platforms (Android/iOS/Linux/macOS/Web/Windows).
 
-- 模型: **GPT-5.5** (openai-codex)
-- 总样本数: **3594 / 3594** (100% 完成) ✅
-- Pipeline: iterative_zoom (8 rounds), legacy (fill/legacy via main_baseline.yaml)
-- 总准确率: **91.52%** (3271 correct / 303 wrong / 20 WF)
+- Model: **GPT-5.5** (openai-codex)
+- Samples: **3,594 / 3,594** (100%) ✅
+- Pipeline: iterative_zoom (8 rounds), legacy (main_baseline.yaml)
+- Accuracy: **91.52%** (3,271 correct / 303 wrong / 20 WF)
 
 ---
 
-## 运行结果
+## Results
 
-| 模型 | 进度 | 正确 | 错误 | WF | 准确率 | 状态 |
-|------|------|------|------|----|--------|------|
-| **GPT-5.5** | 3594/3594 | 3271 | 303 | 20 | **91.52%** | ✅ 完成 |
+| Model | Progress | Correct | Wrong | WF | Accuracy | Status |
+|-------|----------|---------|-------|-----|----------|--------|
+| **GPT-5.5** | 3594/3594 | 3271 | 303 | 20 | **91.52%** | ✅ Done |
 
-## 平台分布 (GPT-5.5)
+## By Platform
 
-| 平台 | 样本 | 正确 | 错误 | WF | 准确率 |
-|------|------|------|------|----|--------|
-| **Android** | 711 | 682 | 29 | 0 | 95.9% |
-| **iOS** | 644 | 612 | 32 | 0 | 95.0% |
-| **Web** | 618 | 569 | 46 | 3 | 92.5% |
-| **macOS** | 691 | 610 | 73 | 8 | 89.3% |
-| **Windows** | 543 | 474 | 60 | 9 | 88.8% |
-| **Linux** | 387 | 324 | 63 | 0 | 83.7% |
-| **合计** | **3594** | **3271** | **303** | **20** | **91.52%** |
+| Platform | Samples | Correct | Accuracy |
+|----------|---------|---------|----------|
+| Android | 711 | 682 | 95.9% |
+| iOS | 644 | 612 | 95.0% |
+| Web | 618 | 569 | 92.5% |
+| macOS | 691 | 610 | 89.3% |
+| Windows | 543 | 474 | 88.8% |
+| Linux | 387 | 324 | 83.7% |
+| **Total** | **3594** | **3271** | **91.52%** |
 
-> 20 个 WF 全部是 `NoVerifiedTarget` — 迭代缩放 8 轮 + 重试后模型仍无法定位的硬骨头（非网络问题）。
+> All 20 WF are `NoVerifiedTarget` — genuine hard cases the model cannot locate even after iterative zoom with retries. Not network errors.
 
-## 运行信息
-- 运行目录: `runs/gui_grounding/gui_grounding_mmbench_gui_l2_full_20260602_2040/`
-- 原始 shard: `runs/gui_grounding/gui_grounding_mmbench_gui_l2_full_20260602_2040/mmbench_gui_l2/shards/shard_*.jsonl`
-- 结果文件: `benchmarks/mmbench_gui_l2/results/gpt_5_5/`
+## Files
+- `results/gpt_5_5/full_report.md` — summary report
+- `results/gpt_5_5/full_summary.json` — aggregated stats by platform
+- `results/gpt_5_5/results.jsonl` — 3,594 per-sample records
 
-## 文件
-- `results/gpt_5_5/full_report.md` — 汇总报告
-- `results/gpt_5_5/full_summary.json` — 聚合统计
-- `results/gpt_5_5/results.jsonl` — 3594 条逐样本记录
+## Run Info
+- Run directory: `runs/gui_grounding/gui_grounding_mmbench_gui_l2_full_20260602_2040/`

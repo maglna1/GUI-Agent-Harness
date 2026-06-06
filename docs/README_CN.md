@@ -83,23 +83,30 @@ LLM不需要了解GUI自动化的工作原理——它只需调用工具。
 
 ## 快速开始
 
-### 第一步：安装 GUI Agent Harness
+### 第一步：安装
+
+本 harness 是一个 **OpenProgram 程序**——运行在 OpenProgram host 内部。**先装 OpenProgram，再把本 harness 装进去**：它会安装到 **`<OpenProgram>/openprogram/functions/agentics/GUI-Agent-Harness/`** 并**自动注册**，`gui_agent` 随即出现在网页 UI 和函数列表里。
+
+完整一键安装（克隆 OpenProgram host，用 `--gui` 一并装好本 harness + PyTorch + YOLO 权重 + EasyOCR）：
 
 ```bash
-pip install git+https://github.com/Fzkuji/GUI-Agent-Harness.git
+git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
+./scripts/install.sh --gui        # macOS / Linux   (--cuda cu121 走 NVIDIA GPU)
+.\scripts\install.ps1 -Gui        # Windows         (-Cuda cu121 走 NVIDIA GPU)
 ```
 
-所有依赖会自动安装，包括 [OpenProgram](https://github.com/Fzkuji/OpenProgram)（Agentic Programming 的运行时）、ultralytics（GPA-GUI-Detector）、OpenCV、Pillow 等。
+`pip install` 单独装**不够**——YOLO 权重和 OCR 模型不在 PyPI 上，必须用安装脚本。完整依赖矩阵与参数见 **[docs/install.md](install.md)**。
 
-> **本地开发**：上游 PyPI 包名是 `openprogram`。如果你要跑未发布的分支，先本地装 OpenProgram（`pip install -e /path/to/OpenProgram`），然后在本仓库里 `pip install -e . --no-deps`，绕过 git URL 拉取。
-
-开发模式安装（可编辑）：
+<details>
+<summary>已经有 OpenProgram host？只加 GUI agent。</summary>
 
 ```bash
-git clone https://github.com/Fzkuji/GUI-Agent-Harness.git
-cd GUI-Agent-Harness
-pip install -e .
+openprogram programs install gui          # 克隆并注册到 openprogram/functions/agentics/
+# 再从 harness 目录补齐 GUI 资产（权重 + OCR）：
+cd "$(python -c "import openprogram,os;print(os.path.join(os.path.dirname(openprogram.__file__),'functions','agentics','GUI-Agent-Harness'))")"
+./scripts/install.sh --no-host            # Windows: .\scripts\install.ps1 -NoHost
 ```
+</details>
 
 ### 第二步：配置LLM Provider
 
@@ -132,13 +139,11 @@ export OPENAI_API_KEY=sk-...
 
 ### 第三步：平台设置
 
-**macOS：**
-- 授予辅助功能权限：系统设置 → 隐私与安全性 → 辅助功能 → 添加你的终端应用
-- Apple Vision OCR 自动可用（无需额外安装）
+上面的安装脚本（第一步）会自动处理这些；手动安装时：
 
-**Linux：**
-- 安装EasyOCR用于文字检测：`pip install easyocr`
-- 或安装时一并安装：`pip install "gui-agent-harness[ocr] @ git+https://github.com/Fzkuji/GUI-Agent-Harness.git"`
+- **macOS**：`xcode-select --install`（Swift，供 Apple Vision OCR）+ 在 系统设置 → 隐私与安全性 中授予终端 **屏幕录制** 和 **辅助功能** 权限
+- **Linux**：`apt install xclip wmctrl xdotool scrot`（xclip 为剪贴板必需）+ `pip install easyocr`
+- **Windows**：无需额外组件——Win32 API + PowerShell 剪贴板内置，HiDPI 自动识别
 
 ### 第四步：运行
 

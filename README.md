@@ -137,8 +137,9 @@ UI components are detected once, labeled by a VLM, and stored as templates. On s
 ### 1. Install
 
 This harness is an **OpenProgram program** — it runs inside an OpenProgram host.
-**Install OpenProgram first, then add this harness into it** (it lands in
-`functions/agentics/` and auto-registers, so `gui_agent` appears in the web UI).
+**Install OpenProgram first, then add this harness into it.** It installs into
+**`<OpenProgram>/openprogram/functions/agentics/GUI-Agent-Harness/`** and
+**auto-registers**, so `gui_agent` shows up in the web UI and the function list.
 
 The complete, one-command path does both — clone the
 [OpenProgram](https://github.com/Fzkuji/OpenProgram) host and run its installer
@@ -150,8 +151,9 @@ git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
 .\scripts\install.ps1 -Gui        # Windows         (-Cuda cu121 for NVIDIA)
 ```
 
-That installs the host + web UI, clones this harness into `functions/agentics/`,
-and finishes its setup (PyTorch + YOLO weight + EasyOCR). `pip install` alone is
+That installs the host + web UI, clones this harness into
+`openprogram/functions/agentics/`, and finishes its setup (PyTorch + YOLO weight
++ EasyOCR). `pip install` alone is
 **not** enough — the weight and OCR models aren't on PyPI; the script is the
 source of truth. Full matrix and flags: **[docs/install.md](docs/install.md)**.
 

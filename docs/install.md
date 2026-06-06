@@ -9,10 +9,10 @@ host, not on its own. So the order is always:
    `openprogram/functions/agentics/GUI-Agent-Harness/` and is **auto-registered**
    — `gui_agent` then shows up in the web UI and function list automatically.
 
-The fastest route does both at once from the OpenProgram checkout:
+The fastest route does both at once from the OpenProgram checkout (the GUI agent
+is installed by default):
 ```bash
-./scripts/install.sh --gui          # macOS/Linux   (-Cuda/-cuda cu121 for NVIDIA)
-.\scripts\install.ps1 -Gui          # Windows
+./scripts/install.sh                # macOS/Linux   ·   Windows:  .\scripts\install.ps1
 ```
 
 The rest of this page is for installing/repairing **just the GUI agent** on a
@@ -27,13 +27,13 @@ From the harness directory (`…/functions/agentics/GUI-Agent-Harness`):
 **macOS / Linux**
 ```bash
 ./scripts/install.sh                 # CPU PyTorch (default)
-./scripts/install.sh --cuda cu121    # NVIDIA CUDA 12.1
+./scripts/install.sh --cuda cu124    # NVIDIA GPU — use your own CUDA tag (cu121/cu124/…)
 ```
 
 **Windows (PowerShell)**
 ```powershell
 .\scripts\install.ps1                 # CPU PyTorch (default)
-.\scripts\install.ps1 -Cuda cu121     # NVIDIA CUDA 12.1
+.\scripts\install.ps1 -Cuda cu124     # NVIDIA GPU — use your own CUDA tag (cu121/cu124/…)
 ```
 
 Then run a task — `gui_agent` is also live in the web UI after a worker restart:
@@ -65,7 +65,7 @@ Idempotent and re-runnable. It targets the active `venv`/conda env (or
 
 | Goal | POSIX | Windows |
 |------|-------|---------|
-| CUDA torch | `--cuda cu121` | `-Cuda cu121` |
+| CUDA torch (use your own tag) | `--cuda cu124` | `-Cuda cu124` |
 | Specific interpreter | `--python /path/python` | `-Python C:\path\python.exe` |
 | Skip weight download | `--no-weights` | `-NoWeights` |
 | Skip OCR pre-warm | `--no-ocr` | `-NoOcr` |
@@ -116,5 +116,5 @@ env). See [VM_SETUP.md](VM_SETUP.md).
   `hf download Salesforce/GPA-GUI-Detector model.pt --local-dir ~/GPA-GUI-Detector`.
 - **First OCR hangs for a minute** — EasyOCR is downloading; pre-warming (default)
   avoids this.
-- **NVIDIA GPU unused** — you installed the CPU torch build; re-run with `--cuda cu121`.
+- **NVIDIA GPU unused** — you installed the CPU torch build; re-run with `--cuda <your-tag>` (e.g. `cu124`).
 - **`gui-agent: command not found`** — activate the env the harness was installed into.

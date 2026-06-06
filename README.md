@@ -143,19 +143,18 @@ This harness is an **OpenProgram program** — it runs inside an OpenProgram hos
 
 The complete, one-command path does both — clone the
 [OpenProgram](https://github.com/Fzkuji/OpenProgram) host and run its installer
-with `--gui`:
+(the GUI agent is installed by default):
 
 ```bash
 git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
-./scripts/install.sh --gui        # macOS / Linux   (--cuda cu121 for NVIDIA)
-.\scripts\install.ps1 -Gui        # Windows         (-Cuda cu121 for NVIDIA)
+./scripts/install.sh        # macOS / Linux   ·   Windows:  .\scripts\install.ps1
 ```
 
-That installs the host + web UI, clones this harness into
-`openprogram/functions/agentics/`, and finishes its setup (PyTorch + YOLO weight
-+ EasyOCR). `pip install` alone is
-**not** enough — the weight and OCR models aren't on PyPI; the script is the
-source of truth. Full matrix and flags: **[docs/install.md](docs/install.md)**.
+NVIDIA GPU? add `--cuda cu124` (use your own CUDA tag). That installs the host +
+web UI, clones this harness into `openprogram/functions/agentics/`, and finishes
+its setup (PyTorch + YOLO weight + EasyOCR) — `pip` alone can't fetch the weight
+and OCR models, so the script is the source of truth. Full matrix and flags:
+**[docs/install.md](docs/install.md)**.
 
 <details>
 <summary>Already have an OpenProgram host? Add just the GUI agent.</summary>

@@ -12,11 +12,11 @@
 #
 # Re-runnable: every step is idempotent and skips work already done.
 # This script is the single source of truth for the GUI-specific setup; the
-# OpenProgram installer (../../../../../scripts/install.sh) calls it with --gui.
+# OpenProgram installer (../../../../../scripts/install.sh) runs this by default.
 #
 # Usage:
 #   ./scripts/install.sh                # CPU torch, full GUI setup
-#   ./scripts/install.sh --cuda cu121   # CUDA 12.1 torch wheel
+#   ./scripts/install.sh --cuda cu124   # NVIDIA GPU — use your own CUDA tag (cu121/cu124/…)
 #   ./scripts/install.sh --python /path/to/python   # target a specific interp
 #   ./scripts/install.sh --no-weights --no-ocr --no-system   # skip pieces
 # =============================================================================
@@ -41,7 +41,7 @@ PYTHON_BIN=""
 DO_WEIGHTS=1; DO_OCR=1; DO_SYSTEM=1; ENSURE_HOST=1
 while [ $# -gt 0 ]; do
   case "$1" in
-    --cuda) TORCH_VARIANT="${2:?--cuda needs a value like cu121}"; shift 2 ;;
+    --cuda) TORCH_VARIANT="${2:?--cuda needs your CUDA tag, e.g. cu121 or cu124}"; shift 2 ;;
     --cpu) TORCH_VARIANT="cpu"; shift ;;
     --python) PYTHON_BIN="${2:?--python needs a path}"; shift 2 ;;
     --no-weights) DO_WEIGHTS=0; shift ;;

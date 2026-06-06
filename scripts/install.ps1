@@ -12,11 +12,11 @@
 
  Re-runnable: every step is idempotent and skips work already done.
  This is the single source of truth for GUI-specific setup; the OpenProgram
- installer (..\..\..\..\..\scripts\install.ps1) calls it with -Gui.
+ installer (..\..\..\..\..\scripts\install.ps1) runs this by default.
 
  Usage:
    .\scripts\install.ps1                      # CPU torch, full GUI setup
-   .\scripts\install.ps1 -Cuda cu121          # CUDA 12.1 torch wheel
+   .\scripts\install.ps1 -Cuda cu124          # NVIDIA GPU - use your own CUDA tag (cu121/cu124/...)
    .\scripts\install.ps1 -Python C:\path\python.exe
    .\scripts\install.ps1 -NoWeights -NoOcr    # skip pieces
 =============================================================================

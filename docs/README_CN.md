@@ -87,15 +87,14 @@ LLM不需要了解GUI自动化的工作原理——它只需调用工具。
 
 本 harness 是一个 **OpenProgram 程序**——运行在 OpenProgram host 内部。**先装 OpenProgram，再把本 harness 装进去**：它会安装到 **`<OpenProgram>/openprogram/functions/agentics/GUI-Agent-Harness/`** 并**自动注册**，`gui_agent` 随即出现在网页 UI 和函数列表里。
 
-完整一键安装（克隆 OpenProgram host，用 `--gui` 一并装好本 harness + PyTorch + YOLO 权重 + EasyOCR）：
+完整一键安装（克隆 OpenProgram host 跑安装器，默认就会装好本 harness + PyTorch + YOLO 权重 + EasyOCR）：
 
 ```bash
 git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
-./scripts/install.sh --gui        # macOS / Linux   (--cuda cu121 走 NVIDIA GPU)
-.\scripts\install.ps1 -Gui        # Windows         (-Cuda cu121 走 NVIDIA GPU)
+./scripts/install.sh        # macOS / Linux   ·   Windows:  .\scripts\install.ps1
 ```
 
-`pip install` 单独装**不够**——YOLO 权重和 OCR 模型不在 PyPI 上，必须用安装脚本。完整依赖矩阵与参数见 **[docs/install.md](install.md)**。
+有 N 卡？加 `--cuda cu124`（填你自己的 CUDA 版本）。`pip` 单独装**不够**——YOLO 权重和 OCR 模型靠 pip 装不了，必须用安装脚本。完整依赖矩阵与参数见 **[docs/install.md](install.md)**。
 
 <details>
 <summary>已经有 OpenProgram host？只加 GUI agent。</summary>

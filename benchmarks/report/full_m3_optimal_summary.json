@@ -1,0 +1,29 @@
+{
+  "experiment": "full_m3_optimal",
+  "config": "configs/m3_optimal.yaml",
+  "provider": "minimax-cn-coding-plan",
+  "model": "MiniMax-M3",
+  "status": "PARTIAL — 实验在第44个样本中断，仅覆盖 android_studio_macos 一个 app",
+  "plan_total": 1581,
+  "files_written": 47,
+  "empty_files": 1,
+  "completed": 46,
+  "coverage_pct": 2.91,
+  "correct": 17,
+  "wrong": 25,
+  "wrong_format": 2,
+  "other": 2,
+  "accuracy_correct_over_cw": 0.4048,
+  "accuracy_correct_over_completed": 0.3696,
+  "by_app": {
+    "android_studio_macos": {
+      "correct": 17,
+      "wrong": 25,
+      "wrong_format": 2,
+      "other": 2,
+      "completed": 46,
+      "empty": 1,
+      "accuracy_cw": 0.4048
+    }
+  }
+}

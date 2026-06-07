@@ -3,7 +3,8 @@
  GUI-Agent-Harness - one-command installer (Windows / PowerShell)
 -----------------------------------------------------------------------------
  Installs EVERYTHING the harness needs to run, beyond the Python package:
-   1. PyTorch (CPU by default; -Cuda cuXXX for an NVIDIA build)
+   1. PyTorch - AUTO-DETECTS an NVIDIA GPU (nvidia-smi) and installs the matching
+      CUDA build; falls back to CPU when there's no GPU. Override: -Cpu / -Cuda cuXXX.
    2. The harness itself (editable) + deps (ultralytics, opencv, easyocr...)
    3. The OpenProgram host (if not already importable in the target env)
    4. The GPA-GUI-Detector YOLO weight  -> %USERPROFILE%\GPA-GUI-Detector\model.pt
@@ -15,15 +16,17 @@
  installer (..\..\..\..\..\scripts\install.ps1) runs this by default.
 
  Usage:
-   .\scripts\install.ps1                      # CPU torch, full GUI setup
-   .\scripts\install.ps1 -Cuda cu124          # NVIDIA GPU - use your own CUDA tag (cu121/cu124/...)
+   .\scripts\install.ps1                      # auto GPU/CPU torch, full GUI setup
+   .\scripts\install.ps1 -Cpu                 # force the CPU torch build
+   .\scripts\install.ps1 -Cuda cu124          # force a specific CUDA tag (cu121/cu124/...)
    .\scripts\install.ps1 -Python C:\path\python.exe
    .\scripts\install.ps1 -NoWeights -NoOcr    # skip pieces
 =============================================================================
 #>
 [CmdletBinding()]
 param(
-  [string]$Cuda = "cpu",
+  [string]$Cuda = "auto",
+  [switch]$Cpu,
   [string]$Python = "",
   [switch]$NoWeights,
   [switch]$NoOcr,
@@ -70,13 +73,47 @@ function Pip {
 & $PY -m pip install --quiet --upgrade pip *> $null
 
 # ---- 1. PyTorch (variant-controlled) ----------------------------------------
+
+# Return a CUDA wheel tag for this machine, or "" for CPU. Honors an NVIDIA GPU
+# (nvidia-smi) + the driver's max CUDA version, choosing the newest torch CUDA
+# tag the driver supports AND that actually publishes wheels.
+function Detect-CudaTag {
+  if (-not (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) { return "" }   # no NVIDIA GPU
+  $num = 999999
+  $m = (nvidia-smi 2>$null | Select-String "CUDA Version:\s*([0-9]+)\.([0-9]+)")
+  if ($m) { $num = [int]$m.Matches[0].Groups[1].Value * 100 + [int]$m.Matches[0].Groups[2].Value }  # 13.1 -> 1301
+  foreach ($e in @("cu130:1300","cu129:1209","cu128:1208","cu126:1206","cu124:1204","cu121:1201","cu118:1108")) {
+    $parts = $e.Split(":"); $tag = $parts[0]; $ver = [int]$parts[1]
+    if ($ver -gt $num) { continue }                                  # tag's CUDA must be <= driver
+    $out = (& $PY -m pip install "torch==99" --index-url "https://download.pytorch.org/whl/$tag" --no-deps --dry-run 2>&1 | Out-String)
+    if ($out -match "from versions:") { return $tag }                # first tag with wheels
+  }
+  return ""   # GPU present but no usable tag -> CPU fallback
+}
+
 function Install-Torch {
   & $PY -c "import torch" 2>$null
-  if ($LASTEXITCODE -eq 0) { Ok "torch already installed: $(& $PY -c 'import torch;print(torch.__version__)')"; return }
-  Step "installing PyTorch ($Cuda)"
-  if ($Cuda -eq "cpu") { Pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu }
-  else                 { Pip install torch torchvision --index-url "https://download.pytorch.org/whl/$Cuda" }
-  Ok "torch: $(& $PY -c 'import torch;print(torch.__version__)')"
+  if ($LASTEXITCODE -eq 0) {
+    $cur = (& $PY -c "import torch;print(torch.__version__)")
+    $cudaOk = (& $PY -c "import torch;print(torch.cuda.is_available())")
+    Ok "torch already installed: $cur (CUDA available: $cudaOk)"
+    if ($cudaOk -ne "True" -and (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) {
+      Warn "NVIDIA GPU present but torch is CPU-only - to switch: pip uninstall -y torch torchvision, then rerun"
+    }
+    return
+  }
+  $variant = $Cuda; if ($Cpu) { $variant = "cpu" }
+  if ($variant -eq "cpu") {
+    $idx = "https://download.pytorch.org/whl/cpu"; Step "installing PyTorch (CPU)"
+  } elseif ($variant -eq "auto") {
+    $tag = Detect-CudaTag
+    if ($tag) { $idx = "https://download.pytorch.org/whl/$tag"; Step "NVIDIA GPU detected -> installing CUDA PyTorch ($tag)" }
+    else      { $idx = "https://download.pytorch.org/whl/cpu";  Step "no NVIDIA GPU -> installing CPU PyTorch" }
+  } else {
+    $idx = "https://download.pytorch.org/whl/$variant"; Step "installing PyTorch ($variant)"
+  }
+  Pip install torch torchvision --index-url $idx
+  Ok "torch: $(& $PY -c 'import torch;print(torch.__version__)')  (CUDA available: $(& $PY -c 'import torch;print(torch.cuda.is_available())'))"
 }
 
 # ---- 2. OpenProgram host ----------------------------------------------------

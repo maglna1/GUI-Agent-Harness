@@ -99,7 +99,7 @@ git clone https://github.com/Fzkuji/OpenProgram; cd OpenProgram
 .\scripts\install.ps1
 ```
 
-有 N 卡？加 `--cuda cu124`（填你自己的 CUDA 版本）。这会装好 host + 网页 UI，把本 harness 放进 `openprogram/functions/agentics/GUI-Agent-Harness/`，并完成其配置（PyTorch + YOLO 权重 + EasyOCR）——`pip` 单独装不了权重/OCR，必须用脚本。
+会**自动识别显卡**（N 卡→CUDA，否则 CPU；`--cpu`/`--cuda cu124` 可强制）。这会装好 host + 网页 UI，把本 harness 放进 `openprogram/functions/agentics/GUI-Agent-Harness/`，并完成其配置（PyTorch + YOLO 权重 + EasyOCR）——`pip` 单独装不了权重/OCR，必须用脚本。
 
 **B. 已经有 OpenProgram host。** 只加 GUI agent——它会落到同样的 `functions/agentics/` 路径并自动注册：
 

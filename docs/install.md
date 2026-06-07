@@ -24,16 +24,19 @@ host you already have.
 
 From the harness directory (`…/functions/agentics/GUI-Agent-Harness`):
 
+PyTorch is auto-selected: an NVIDIA GPU (nvidia-smi) gets the matching CUDA
+build, else CPU. Force it with `--cpu`/`-Cpu` or a specific `--cuda`/`-Cuda` tag.
+
 **macOS / Linux**
 ```bash
-./scripts/install.sh                 # CPU PyTorch (default)
-./scripts/install.sh --cuda cu124    # NVIDIA GPU — use your own CUDA tag (cu121/cu124/…)
+./scripts/install.sh                 # auto GPU/CPU
+./scripts/install.sh --cuda cu124    # force a specific CUDA tag (cu121/cu124/…)
 ```
 
 **Windows (PowerShell)**
 ```powershell
-.\scripts\install.ps1                 # CPU PyTorch (default)
-.\scripts\install.ps1 -Cuda cu124     # NVIDIA GPU — use your own CUDA tag (cu121/cu124/…)
+.\scripts\install.ps1                 # auto GPU/CPU
+.\scripts\install.ps1 -Cuda cu124     # force a specific CUDA tag (cu121/cu124/…)
 ```
 
 Then run a task — `gui_agent` is also live in the web UI after a worker restart:
@@ -54,7 +57,7 @@ Idempotent and re-runnable. It targets the active `venv`/conda env (or
 
 | Step | Action | Notes |
 |------|--------|-------|
-| 1 | **PyTorch** (+ torchvision) | CPU wheel by default; `--cuda cuXXX` for NVIDIA. Installed first so ultralytics doesn't pull a mismatched default. |
+| 1 | **PyTorch** (+ torchvision) | Auto-detects an NVIDIA GPU → CUDA build, else CPU (`--cpu` / `--cuda cuXXX` to force). Installed first so ultralytics doesn't pull a mismatched default. |
 | 2 | **OpenProgram host** | Only if not importable (editable from the repo, else PyPI). Skip with `--no-host` / `-NoHost`. |
 | 3 | **The harness** (editable, in-tree) | `pip install -e .[ocr]` → ultralytics, opencv, numpy, Pillow, pynput, easyocr. In-tree under `functions/agentics/` ⇒ **auto-registers** `gui_agent`. |
 | 4 | **GPA YOLO weight** | `Salesforce/GPA-GUI-Detector/model.pt` → `~/GPA-GUI-Detector/model.pt` (~40 MB). Skipped if present. Override path with `GPA_MODEL_PATH`. |
@@ -65,7 +68,8 @@ Idempotent and re-runnable. It targets the active `venv`/conda env (or
 
 | Goal | POSIX | Windows |
 |------|-------|---------|
-| CUDA torch (use your own tag) | `--cuda cu124` | `-Cuda cu124` |
+| Force CPU torch | `--cpu` | `-Cpu` |
+| Force a CUDA tag | `--cuda cu124` | `-Cuda cu124` |
 | Specific interpreter | `--python /path/python` | `-Python C:\path\python.exe` |
 | Skip weight download | `--no-weights` | `-NoWeights` |
 | Skip OCR pre-warm | `--no-ocr` | `-NoOcr` |
@@ -116,5 +120,5 @@ env). See [VM_SETUP.md](VM_SETUP.md).
   `hf download Salesforce/GPA-GUI-Detector model.pt --local-dir ~/GPA-GUI-Detector`.
 - **First OCR hangs for a minute** — EasyOCR is downloading; pre-warming (default)
   avoids this.
-- **NVIDIA GPU unused** — you installed the CPU torch build; re-run with `--cuda <your-tag>` (e.g. `cu124`).
+- **NVIDIA GPU unused** — the installer auto-detects it; if it picked CPU (no driver at install time, or `--cpu`): `pip uninstall -y torch torchvision`, then re-run.
 - **`gui-agent: command not found`** — activate the env the harness was installed into.

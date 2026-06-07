@@ -155,7 +155,7 @@ git clone https://github.com/Fzkuji/OpenProgram; cd OpenProgram
 .\scripts\install.ps1
 ```
 
-NVIDIA GPU? add `--cuda cu124` (use your own CUDA tag). This installs the host +
+It **auto-detects an NVIDIA GPU** and installs the matching CUDA PyTorch (CPU otherwise; force with `--cpu` / `--cuda cu124`). This installs the host +
 web UI, drops this harness into `openprogram/functions/agentics/GUI-Agent-Harness/`,
 and finishes its setup (PyTorch + YOLO weight + EasyOCR) — `pip` alone can't fetch
 the weight/OCR, so the script is the source of truth.

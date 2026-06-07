@@ -85,18 +85,64 @@ LLM不需要了解GUI自动化的工作原理——它只需调用工具。
 
 ### 第一步：安装
 
-GUI agent 就是个普通的 OpenProgram 程序——两步：
+GUI agent 就是个普通的 OpenProgram 程序：程序都放在
+`openprogram/functions/agentics/` 下，克隆进这个目录就会在下次启动时自动注册。
+所以先装 OpenProgram **host**，再把本仓库克隆进那个目录、跑它自己的安装脚本——
+任何 harness（包括你自己写的）接到 OpenProgram 上都是这一套。
 
-1. **装 OpenProgram**（host）——见 [github.com/Fzkuji/OpenProgram](https://github.com/Fzkuji/OpenProgram)。
-2. **装 GUI agent：**
+#### 第 1 步 — 装 OpenProgram host
 
-   ```bash
-   openprogram programs install gui
-   ```
+**macOS / Linux**
+```bash
+git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
+./scripts/install.sh
+```
 
-完事。`gui_agent` 随即注册好，出现在网页 UI 和 `gui-agent` 命令里。第一次跑 `openprogram` 会自动引导你配 provider；GUI agent 在首次使用时会自动下载检测权重 + OCR 模型。
+**Windows (PowerShell)**
+```powershell
+git clone https://github.com/Fzkuji/OpenProgram; cd OpenProgram
+.\scripts\install.ps1
+```
 
-> **macOS：** 在 系统设置 → 隐私与安全性 中给终端授予 屏幕录制 + 辅助功能 权限，它才能看屏幕、控鼠标键盘。NVIDIA GPU 加速、离线预取、进阶参数见 **[docs/install.md](install.md)**。
+#### 第 2 步 — 加 GUI agent
+
+就在刚克隆的 `OpenProgram` 仓库里，进 agentics 目录，克隆本仓库，跑它的安装脚本。
+
+**macOS / Linux**
+```bash
+cd openprogram/functions/agentics
+git clone https://github.com/Fzkuji/GUI-Agent-Harness
+cd GUI-Agent-Harness
+./scripts/install.sh            # 自动识别 NVIDIA GPU；--cpu / --cuda cuXXX 可强制
+```
+
+**Windows (PowerShell)**
+```powershell
+cd openprogram\functions\agentics
+git clone https://github.com/Fzkuji/GUI-Agent-Harness
+cd GUI-Agent-Harness
+.\scripts\install.ps1           # 自动识别 NVIDIA GPU；-Cpu / -Cuda cuXXX 可强制
+```
+
+就一条命令，但重活是**分平台**的——下面写清楚每个系统它都装了什么，省得你装完才发现还缺东西：
+
+| | macOS | Windows | Linux |
+|---|---|---|---|
+| **PyTorch** | 通用 MPS/CPU wheel | 自动 NVIDIA-CUDA，否则 CPU | 自动 NVIDIA-CUDA，否则 CPU |
+| **OCR 引擎** | Apple Vision + EasyOCR 兜底 | EasyOCR `en`+`ch_sim`（约 300 MB） | EasyOCR `en`+`ch_sim`（约 300 MB） |
+| **检测器** | GPA-GUI-Detector 权重 → `~/GPA-GUI-Detector/model.pt` | → `%USERPROFILE%\GPA-GUI-Detector\model.pt` | → `~/GPA-GUI-Detector/model.pt` |
+| **系统工具** | Xcode CLT（Swift，给 Apple Vision 用） | 无——Win32 + PowerShell 剪贴板自带 | `xclip`（必需）+ `wmctrl`/`xdotool`/`scrot`，走 apt/dnf/pacman |
+| **手动一步** | 给终端授予 屏幕录制 + 辅助功能 | 无 | 无 |
+
+> **仅 macOS：** 不在 *系统设置 → 隐私与安全性* 里给终端授予 **屏幕录制** 和 **辅助功能**，
+> agent 就没法截屏/点击。Apple Vision OCR 还需要 Xcode 命令行工具
+> （`xcode-select --install`）；安装脚本会去请求它，并且无论如何都会装 EasyOCR 兜底。
+
+第 2 步装完后，重启 worker（或在网页 UI 的 Functions 页点 **Refresh**）：`gui_agent`
+就注册好了，出现在网页 UI 和 `gui-agent` 命令里。第一次跑 `openprogram` 会引导你配 provider。
+
+> 离线预取、强制某个 CUDA tag、跳过某些步骤（`--no-weights` / `--no-ocr` / `--no-system`）：
+> 见 **[docs/install.md](install.md)**。
 
 ### 第二步：运行
 

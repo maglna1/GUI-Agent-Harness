@@ -136,22 +136,70 @@ UI components are detected once, labeled by a VLM, and stored as templates. On s
 
 ### 1. Install
 
-The GUI agent is a normal OpenProgram program — two steps:
+The GUI agent is a normal OpenProgram program: programs live in
+`openprogram/functions/agentics/`, and anything cloned into that folder
+auto-registers on the next start. So you install the OpenProgram **host**, then
+clone this repo into that folder and run its installer — the same pattern any
+harness (including your own) uses to plug into OpenProgram.
 
-1. **Install OpenProgram** (the host) — see [github.com/Fzkuji/OpenProgram](https://github.com/Fzkuji/OpenProgram).
-2. **Add the GUI agent:**
+#### Step 1 — Install the OpenProgram host
 
-   ```bash
-   openprogram programs install gui
-   ```
+**macOS / Linux**
+```bash
+git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
+./scripts/install.sh
+```
 
-That's it. `gui_agent` is registered and shows up in the web UI and the `gui-agent`
-CLI. The first time you run `openprogram` it walks you through provider setup, and
-the GUI agent auto-downloads its detector weight + OCR models on first use.
+**Windows (PowerShell)**
+```powershell
+git clone https://github.com/Fzkuji/OpenProgram; cd OpenProgram
+.\scripts\install.ps1
+```
 
-> **macOS:** grant your terminal Screen Recording + Accessibility (System Settings →
-> Privacy) so it can see and control the desktop. NVIDIA GPU acceleration, offline
-> pre-fetch, and advanced flags: **[docs/install.md](docs/install.md)**.
+#### Step 2 — Add the GUI agent
+
+Staying in the `OpenProgram` repo you just cloned, go into the agentics folder,
+clone this repo, and run its installer.
+
+**macOS / Linux**
+```bash
+cd openprogram/functions/agentics
+git clone https://github.com/Fzkuji/GUI-Agent-Harness
+cd GUI-Agent-Harness
+./scripts/install.sh            # auto-detects an NVIDIA GPU; --cpu / --cuda cuXXX to force
+```
+
+**Windows (PowerShell)**
+```powershell
+cd openprogram\functions\agentics
+git clone https://github.com/Fzkuji/GUI-Agent-Harness
+cd GUI-Agent-Harness
+.\scripts\install.ps1           # auto-detects an NVIDIA GPU; -Cpu / -Cuda cuXXX to force
+```
+
+It's one command, but the heavy lifting is **platform-specific** — here's exactly
+what it sets up on each OS, so nothing is left for you to chase down:
+
+| | macOS | Windows | Linux |
+|---|---|---|---|
+| **PyTorch** | universal MPS/CPU wheel | NVIDIA-CUDA auto-detected, else CPU | NVIDIA-CUDA auto-detected, else CPU |
+| **OCR engine** | Apple Vision + EasyOCR fallback | EasyOCR `en`+`ch_sim` (~300 MB) | EasyOCR `en`+`ch_sim` (~300 MB) |
+| **Detector** | GPA-GUI-Detector weight → `~/GPA-GUI-Detector/model.pt` | → `%USERPROFILE%\GPA-GUI-Detector\model.pt` | → `~/GPA-GUI-Detector/model.pt` |
+| **System tools** | Xcode CLT (Swift, for Apple Vision) | none — Win32 + PowerShell clipboard built-in | `xclip` (required) + `wmctrl`/`xdotool`/`scrot`, via apt/dnf/pacman |
+| **Manual step** | grant the terminal Screen Recording + Accessibility | none | none |
+
+> **macOS only:** the agent cannot screenshot or click until you grant your
+> terminal **Screen Recording** and **Accessibility** under *System Settings →
+> Privacy & Security*. Apple Vision OCR also needs the Xcode command-line tools
+> (`xcode-select --install`); the installer requests them, and EasyOCR is
+> installed as a cross-platform fallback either way.
+
+After Step 2, restart the worker (or hit **Refresh** on the web UI's Functions
+page): `gui_agent` is registered and shows up in the web UI and the `gui-agent`
+CLI. The first time you run `openprogram` it walks you through provider setup.
+
+> Offline pre-fetch, forcing a CUDA tag, or skipping pieces
+> (`--no-weights` / `--no-ocr` / `--no-system`): **[docs/install.md](docs/install.md)**.
 
 ### 2. Run
 

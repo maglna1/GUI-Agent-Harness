@@ -136,62 +136,54 @@ UI components are detected once, labeled by a VLM, and stored as templates. On s
 
 ### 1. Install
 
-The GUI agent is an **OpenProgram program** — it runs inside an OpenProgram host,
-installs into **`<OpenProgram>/openprogram/functions/agentics/GUI-Agent-Harness/`**,
-and **auto-registers** there (so `gui_agent` shows up in the web UI and the
-function list with no extra wiring). You don't install it standalone — you install
-it into a host. Pick your case:
+The GUI agent is an **OpenProgram program** — like every harness, it plugs into an
+OpenProgram host by living in the host's
+**`openprogram/functions/agentics/GUI-Agent-Harness/`** folder, where it
+**auto-registers** (it then shows up in the web UI and function list, no wiring).
+So it's a two-step install:
 
-**A. You just want to run the GUI agent.** Install the OpenProgram host — the GUI
-agent is included **by default**:
+**1) Install the OpenProgram host** (skip if you already have it) — follow
+[OpenProgram](https://github.com/Fzkuji/OpenProgram)'s own install.
+
+**2) Add this harness into the host, then run its installer** — clone it into the
+host's `functions/agentics/` folder and run `scripts/install.sh --no-host`, which
+fetches the deps PyTorch needs + the YOLO weight + EasyOCR (auto-detects an NVIDIA
+GPU → CUDA build, else CPU):
 
 ```bash
 # macOS / Linux
-git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
-./scripts/install.sh
+AGENTICS="$(python -c "import openprogram,os;print(os.path.join(os.path.dirname(openprogram.__file__),'functions','agentics'))")"
+git clone https://github.com/Fzkuji/GUI-Agent-Harness "$AGENTICS/GUI-Agent-Harness"
+cd "$AGENTICS/GUI-Agent-Harness" && ./scripts/install.sh --no-host
+```
 
+```powershell
 # Windows (PowerShell)
-git clone https://github.com/Fzkuji/OpenProgram; cd OpenProgram
-.\scripts\install.ps1
+$AGENTICS = python -c "import openprogram,os;print(os.path.join(os.path.dirname(openprogram.__file__),'functions','agentics'))"
+git clone https://github.com/Fzkuji/GUI-Agent-Harness "$AGENTICS\GUI-Agent-Harness"
+cd "$AGENTICS\GUI-Agent-Harness"; .\scripts\install.ps1 -NoHost
 ```
 
-It **auto-detects an NVIDIA GPU** and installs the matching CUDA PyTorch (CPU otherwise; force with `--cpu` / `--cuda cu124`). This installs the host +
-web UI, drops this harness into `openprogram/functions/agentics/GUI-Agent-Harness/`,
-and finishes its setup (PyTorch + YOLO weight + EasyOCR) — `pip` alone can't fetch
-the weight/OCR, so the script is the source of truth.
+> Shortcut: `openprogram programs install gui` does the clone-into-`functions/agentics/`
+> for you; then run the harness's `scripts/install.sh --no-host` for the weight/OCR.
+> **macOS only:** grant your terminal **Screen Recording** + **Accessibility** in
+> System Settings → Privacy so the agent can see and control the desktop.
 
-**B. You already have an OpenProgram host.** Add just the GUI agent — it lands in
-the same `functions/agentics/` path and auto-registers:
-
-```bash
-openprogram programs install gui          # clone + register into openprogram/functions/agentics/
-# then fetch the GUI assets (weight + OCR) from the harness dir:
-cd "$(python -c "import openprogram,os;print(os.path.join(os.path.dirname(openprogram.__file__),'functions','agentics','GUI-Agent-Harness'))")"
-./scripts/install.sh --no-host            # Windows: .\scripts\install.ps1 -NoHost
-```
-
-Full matrix and flags: **[docs/install.md](docs/install.md)**.
+Full dependency matrix and flags: **[docs/install.md](docs/install.md)**.
 
 ### 2. Provider
 
+The GUI agent calls the LLM through the **OpenProgram host**, so configure your
+provider **in OpenProgram** (not via environment variables):
+
 ```bash
-openprogram providers login openai-codex    # ChatGPT subscription (recommended)
-# or set an API key:
-export ANTHROPIC_API_KEY=sk-ant-...
-export OPENAI_API_KEY=sk-...
+openprogram setup            # guided: pick a provider and sign in (or it adopts a logged-in CLI)
 ```
 
-Auto-detects available providers. Override with `--provider` and `--model`.
+You can also manage providers in the web UI (Settings → Providers). Override the
+provider/model for a single run with `--provider` / `--model`.
 
-### 3. Platform
-
-The installer (step 1) handles these automatically; for a manual setup:
-
-- **macOS**: `xcode-select --install` (Swift, for Apple Vision OCR) + grant Terminal **Screen Recording** & **Accessibility** in System Settings → Privacy
-- **Linux**: `apt install xclip wmctrl xdotool scrot` (xclip required for clipboard) + `pip install easyocr`
-- **Windows**: nothing extra — Win32 API + PowerShell clipboard are built-in, HiDPI auto-detected
-
-### 4. Run
+### 3. Run
 
 `--work-dir` is an absolute path the agent may write to; use a native path per OS.
 

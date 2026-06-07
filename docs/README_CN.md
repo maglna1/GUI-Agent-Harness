@@ -85,71 +85,41 @@ LLM不需要了解GUI自动化的工作原理——它只需调用工具。
 
 ### 第一步：安装
 
-GUI agent 是一个 **OpenProgram 程序**——运行在 OpenProgram host 内部，安装到 **`<OpenProgram>/openprogram/functions/agentics/GUI-Agent-Harness/`** 并**自动注册**（`gui_agent` 随即出现在网页 UI 和函数列表，无需额外配置）。它不单独安装，而是装进一个 host。看你属于哪种情况：
+GUI agent 是一个 **OpenProgram 程序**——和其它 harness 一样，它通过放进 host 的 **`openprogram/functions/agentics/GUI-Agent-Harness/`** 目录来接入 OpenProgram，放进去就**自动注册**（随即出现在网页 UI 和函数列表，无需额外配置）。所以分两步装：
 
-**A. 只想跑 GUI agent。** 装 OpenProgram host——GUI agent **默认就一起装好**：
+**1) 先装 OpenProgram host**（已有可跳过）——按 [OpenProgram](https://github.com/Fzkuji/OpenProgram) 自己的安装方式装。
+
+**2) 把本 harness 加进 host，再跑它的安装器**——克隆到 host 的 `functions/agentics/` 目录，运行 `scripts/install.sh --no-host`，它会装 PyTorch + YOLO 权重 + EasyOCR（自动识别 N 卡→CUDA，否则 CPU）：
 
 ```bash
 # macOS / Linux
-git clone https://github.com/Fzkuji/OpenProgram && cd OpenProgram
-./scripts/install.sh
+AGENTICS="$(python -c "import openprogram,os;print(os.path.join(os.path.dirname(openprogram.__file__),'functions','agentics'))")"
+git clone https://github.com/Fzkuji/GUI-Agent-Harness "$AGENTICS/GUI-Agent-Harness"
+cd "$AGENTICS/GUI-Agent-Harness" && ./scripts/install.sh --no-host
+```
 
+```powershell
 # Windows (PowerShell)
-git clone https://github.com/Fzkuji/OpenProgram; cd OpenProgram
-.\scripts\install.ps1
+$AGENTICS = python -c "import openprogram,os;print(os.path.join(os.path.dirname(openprogram.__file__),'functions','agentics'))"
+git clone https://github.com/Fzkuji/GUI-Agent-Harness "$AGENTICS\GUI-Agent-Harness"
+cd "$AGENTICS\GUI-Agent-Harness"; .\scripts\install.ps1 -NoHost
 ```
 
-会**自动识别显卡**（N 卡→CUDA，否则 CPU；`--cpu`/`--cuda cu124` 可强制）。这会装好 host + 网页 UI，把本 harness 放进 `openprogram/functions/agentics/GUI-Agent-Harness/`，并完成其配置（PyTorch + YOLO 权重 + EasyOCR）——`pip` 单独装不了权重/OCR，必须用脚本。
-
-**B. 已经有 OpenProgram host。** 只加 GUI agent——它会落到同样的 `functions/agentics/` 路径并自动注册：
-
-```bash
-openprogram programs install gui          # 克隆并注册到 openprogram/functions/agentics/
-# 再从 harness 目录补齐 GUI 资产（权重 + OCR）：
-cd "$(python -c "import openprogram,os;print(os.path.join(os.path.dirname(openprogram.__file__),'functions','agentics','GUI-Agent-Harness'))")"
-./scripts/install.sh --no-host            # Windows: .\scripts\install.ps1 -NoHost
-```
+> 快捷方式：`openprogram programs install gui` 会帮你克隆到 `functions/agentics/`，然后再跑 harness 的 `scripts/install.sh --no-host` 补权重/OCR。**仅 macOS：** 在 系统设置 → 隐私与安全性 中给终端授予 **屏幕录制** 和 **辅助功能** 权限，agent 才能看屏幕、控制鼠标键盘。
 
 完整依赖矩阵与参数见 **[docs/install.md](install.md)**。
 
-### 第二步：配置LLM Provider
+### 第二步：配置 Provider
 
-GUI Agent Harness 需要一个LLM来做决策。至少安装一个provider：
-
-**方案A：Claude Code CLI（推荐）**
+GUI agent 通过 **OpenProgram host** 调用 LLM，所以 provider **在 OpenProgram 里配**（不要用环境变量）：
 
 ```bash
-npm install -g @anthropic-ai/claude-code
-claude login
+openprogram setup            # 引导式：选 provider 并登录（或自动接管已登录的 CLI）
 ```
 
-使用Claude订阅——无额外token费用。底层以 `claude -p` 方式运行。
+也可以在网页 UI 的 设置 → Providers 里管理。单次运行可用 `--provider` / `--model` 临时覆盖。
 
-**方案B：Anthropic API**
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-按token计费。建议写入shell profile以持久化。
-
-**方案C：OpenAI API**
-
-```bash
-export OPENAI_API_KEY=sk-...
-```
-
-系统会自动检测最佳可用provider，也可以用 `--provider` 强制指定。
-
-### 第三步：平台设置
-
-上面的安装脚本（第一步）会自动处理这些；手动安装时：
-
-- **macOS**：`xcode-select --install`（Swift，供 Apple Vision OCR）+ 在 系统设置 → 隐私与安全性 中授予终端 **屏幕录制** 和 **辅助功能** 权限
-- **Linux**：`apt install xclip wmctrl xdotool scrot`（xclip 为剪贴板必需）+ `pip install easyocr`
-- **Windows**：无需额外组件——Win32 API + PowerShell 剪贴板内置，HiDPI 自动识别
-
-### 第四步：运行
+### 第三步：运行
 
 `--work-dir` 是 agent 可写的绝对路径，按你的系统填对应路径：
 

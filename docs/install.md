@@ -9,14 +9,10 @@ host, not on its own. So the order is always:
    `openprogram/functions/agentics/GUI-Agent-Harness/` and is **auto-registered**
    — `gui_agent` then shows up in the web UI and function list automatically.
 
-The fastest route does both at once from the OpenProgram checkout (the GUI agent
-is installed by default):
-```bash
-./scripts/install.sh                # macOS/Linux   ·   Windows:  .\scripts\install.ps1
-```
-
-The rest of this page is for installing/repairing **just the GUI agent** on a
-host you already have.
+The quickest path is the **One command** below, run from the harness directory —
+it installs the harness (and bootstraps the OpenProgram host too if it isn't
+importable yet). Configure your LLM **provider in OpenProgram** (`openprogram
+setup`), not via environment variables.
 
 ---
 

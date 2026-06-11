@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""SSPro 300 切片的臂驱动:--arm prefetch|single|zoom。
+
+  prefetch:顺序确保切片所有标注+图片已下载(避免并发下载竞争)。
+  single  :单次定位臂(生产 Phase-3 路径,--app-name sspro_single,control 惯例)。
+  zoom    :迭代缩放臂(--app-name screenspot_pro --config sspro_stack_zoom.yaml)。
+
+按 annotation 分组,ThreadPool 并发 3,逐文件批量 --indexes,--skip-existing 续跑。
+输出 runs/sspro_stack/{arm}/<ann_stem>.jsonl。
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[1]
+PY = sys.executable
+
+MANIFEST = json.loads((HERE / "runs/sspro_slice/slice_manifest.json").read_text(encoding="utf-8"))
+OUT_BASE = REPO / "runs" / "sspro_stack"
+
+
+def run_annotation(arm: str, ann: str, indexes: str) -> tuple[str, int, int]:
+    stem = ann[:-5]
+    out = OUT_BASE / arm / f"{stem}.jsonl"
+    work = OUT_BASE / arm / "work" / stem
+    out.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [PY, str(HERE / "run_screenspot_pro.py"),
+           "--annotation", ann, "--indexes", indexes,
+           "--output", str(out), "--work-dir", str(work),
+           "--provider", "openai-codex", "--model", "gpt-5.5",
+           "--runtime-retries", "4", "--retry-provider-errors", "2",
+           "--exec-timeout-s", "300",
+           "--download-timeout-s", "120", "--download-retries", "5",
+           "--skip-existing"]
+    if arm == "zoom":
+        cmd += ["--app-name", "screenspot_pro",
+                "--config", str(HERE / "configs" / "sspro_stack_zoom.yaml")]
+    else:
+        cmd += ["--app-name", "sspro_single"]
+    subprocess.run(cmd, cwd=REPO, text=True, encoding="utf-8", errors="replace",
+                   capture_output=True)
+    ok = n = 0
+    if out.exists():
+        for line in out.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            n += 1
+            ok += r.get("correctness") == "correct"
+    return (stem, ok, n)
+
+
+def prefetch() -> int:
+    sys.path.insert(0, str(HERE))
+    from run_screenspot_pro import ensure_sample  # noqa: E402
+    data_dir = HERE / "data"
+    done = fail = 0
+    for ann, idx in MANIFEST["samples"]:
+        try:
+            ensure_sample(data_dir, ann, idx, 120, 5)
+            done += 1
+        except Exception as exc:
+            fail += 1
+            print(f"  prefetch fail {ann}#{idx}: {exc.__class__.__name__}", flush=True)
+        if (done + fail) % 25 == 0:
+            print(f"  prefetch {done+fail}/{len(MANIFEST['samples'])}", flush=True)
+    print(f"prefetch done={done} fail={fail}", flush=True)
+    return 0 if fail == 0 else 1
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--arm", choices=["prefetch", "single", "zoom"], required=True)
+    ap.add_argument("--concurrency", type=int, default=3)
+    args = ap.parse_args()
+
+    if args.arm == "prefetch":
+        return prefetch()
+
+    groups = MANIFEST["index_args"]
+    print(f"{args.arm}: {len(groups)} annotations, {MANIFEST['total']} samples", flush=True)
+    tot_ok = tot_n = 0
+    with ThreadPoolExecutor(max_workers=args.concurrency) as ex:
+        futs = [ex.submit(run_annotation, args.arm, ann, idxs) for ann, idxs in sorted(groups.items())]
+        for fut in as_completed(futs):
+            stem, ok, n = fut.result()
+            tot_ok += ok
+            tot_n += n
+            print(f"  {stem}: {ok}/{n}  (total {tot_ok}/{tot_n})", flush=True)
+    print(f"\n{args.arm} ARM DONE: {tot_ok}/{tot_n} = {tot_ok/max(1,tot_n):.1%}", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

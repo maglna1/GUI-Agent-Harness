@@ -30,7 +30,15 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 sys.path.insert(0, str(REPO))
 
-DATA_DIR = HERE / "data_ui_vision"
+DATA_DIR = HERE / "data_ui_vision"  # main() 里按 --data-dir 覆盖
+
+# 判定口径短语(main() 里按 --convention 切换)。element=UI-Vision(被命名元素
+# 本体,通常是标签文字/图标自身);control=SSPro(完成指令的可点击控件,优先
+# 开关/滑块/关闭钮而非其文字标签)。
+TARGET_PHRASE = "the element the target names"
+TARGET_POLICY = ("If both look plausible, choose the one more precisely centred on "
+                 "the named element itself (its own icon/label extent, not an "
+                 "adjacent control).")
 AGREE_PX = 18      # 更小的一致阈值:15-40px 的"近距分歧"恰是可裁决的精度问题
 PAD = 240
 PAD_SPATIAL = 520  # 方位类指令需要看到参照锚点,用宽上下文
@@ -59,17 +67,26 @@ def load_rows(pattern: str) -> dict[str, dict]:
 
 
 def image_path_for(sample_id: str, ann_cache: dict) -> Path | None:
-    # sample_id: ui_vision_<split>_<idx>
+    # SSPro 布局:data/images/{sample_id}.png(ensure_sample 的缓存命名)
+    direct = DATA_DIR / "images" / f"{sample_id}.png"
+    if direct.exists():
+        return direct
+    # UI-Vision 布局:sample_id = <ann_stem>_<idx>,图片在 raw_images/<rel>
     parts = sample_id.rsplit("_", 1)
     ann_name = parts[0] + ".json"  # ui_vision_basic.json
     idx = int(parts[1])
     if ann_name not in ann_cache:
         ann_path = DATA_DIR / "annotations" / ann_name
+        if not ann_path.exists():
+            return None
         ann_cache[ann_name] = json.loads(ann_path.read_text(encoding="utf-8"))
     sample = ann_cache[ann_name][idx]
     rel = sample.get("raw_image_path") or sample.get("img_filename")
-    p = DATA_DIR / "raw_images" / rel
-    return p if p.exists() else None
+    for sub in ("raw_images", "images"):
+        p = DATA_DIR / sub / rel
+        if p.exists():
+            return p
+    return None
 
 
 def point_inside(px, py, b) -> bool:
@@ -228,9 +245,9 @@ The attached sheet shows ZOOMED-IN views of UI elements from one screenshot:
   to the target.
 {lines}
 
-Question: which numbered view shows EXACTLY the element the target names?
+Question: which numbered view shows EXACTLY {TARGET_PHRASE}?
 Keep [0] unless you can clearly see that [0] is a different element AND one of
-the alternatives clearly IS the named element. Icons are now zoomed large
+the alternatives clearly IS the right one. Icons are now zoomed large
 enough to read their glyphs — judge by visual identity, not position.
 
 Reply with ONLY JSON: {{"choice": 0, "confidence": 0.0, "reasoning": "..."}}"""
@@ -267,7 +284,20 @@ def main() -> int:
                     help="对每行最终答案做放大验身(zoomed lineup);确信时切换到正确候选")
     ap.add_argument("--shards", type=int, default=1, help="总分片数(并行跑)")
     ap.add_argument("--shard-index", type=int, default=0, help="本进程的分片号 0..shards-1")
+    ap.add_argument("--convention", choices=["element", "control"], default="element",
+                    help="判定口径:element=被命名元素本体(UI-Vision);control=完成指令的可点击控件(SSPro)")
+    ap.add_argument("--data-dir", default="benchmarks/screenspot_pro/data_ui_vision",
+                    help="标注/图片所在数据目录")
     args = ap.parse_args()
+
+    global DATA_DIR, TARGET_PHRASE, TARGET_POLICY
+    DATA_DIR = (REPO / args.data_dir).resolve()
+    if args.convention == "control":
+        TARGET_PHRASE = "the clickable control that completes the instruction"
+        TARGET_POLICY = (
+            "If both look plausible, prefer the actionable control itself "
+            "(toggle, slider thumb, button, close affordance, input field) over "
+            "its text label, category icon, or a passive status indicator.")
 
     arm1 = load_rows(args.arm1_glob)
     arm2 = load_rows(args.arm2_glob)
@@ -346,12 +376,10 @@ relations). Image 2 additionally shows numbered GREEN boxes — other detected
 elements whose text/label relates to the target:
 {cand_lines}
 
-Decide which marker is on the element the target names. Judge by what is
+Decide which marker is on {TARGET_PHRASE}. Judge by what is
 visibly under each marker, not by the descriptions. If the target describes a
 spatial relation (left of / right of / nearest ...), first find the named
-anchor element in image 2, then verify the relation. If both A and B look
-plausible, choose the one more precisely centred on the named element itself
-(its own icon/label extent, not an adjacent control).
+anchor element in image 2, then verify the relation. {TARGET_POLICY}
 
 If NEITHER A nor B is on the named element: check the green boxes — if one of
 them IS the named element, answer with its id (e.g. "c3"). If the element is

@@ -158,8 +158,18 @@ git clone https://github.com/Fzkuji/OpenProgram; cd OpenProgram
 
 #### Step 2 — Add the GUI agent
 
-Staying in the `OpenProgram` repo you just cloned, go into the agentics folder,
-clone this repo, and run its installer.
+The quickest path is OpenProgram's program installer (the first-run wizard
+offers the same choice):
+
+```bash
+openprogram programs install gui     # clones this repo + installs its deps
+                                     # (PyTorch: CPU wheel auto-selected on
+                                     # GPU-less Linux, CUDA on NVIDIA boxes)
+```
+
+For explicit control over the torch variant and the asset setup (detector
+weight, OCR models, system tools), clone this repo into the agentics folder
+and run **its own** installer instead:
 
 **macOS / Linux**
 ```bash
@@ -200,6 +210,31 @@ CLI. The first time you run `openprogram` it walks you through provider setup.
 
 > Offline pre-fetch, forcing a CUDA tag, or skipping pieces
 > (`--no-weights` / `--no-ocr` / `--no-system`): **[docs/install.md](docs/install.md)**.
+
+<details>
+<summary><b>How OpenProgram detects this harness (and how to build your own)</b></summary>
+
+OpenProgram walks `openprogram/functions/agentics/` at startup and loads
+any cloned repo that satisfies the harness contract:
+
+```
+GUI-Agent-Harness/                   ← cloned into functions/agentics/
+├── pyproject.toml                   ← declares THIS repo's own deps only
+└── gui_harness/                     ← importable package
+    ├── __init__.py                  ← kept dependency-light (lazy heavy imports)
+    └── agentics/
+        └── __init__.py              ← exposes AGENTIC_FUNCTIONS = [gui_agent]
+```
+
+Importing `gui_harness.agentics` fires the `@agentic_function` decorators,
+which self-register the functions. Two rules keep this safe: the top-level
+`__init__` must import cleanly on a machine without the harness's heavy deps
+(this repo lazy-loads cv2/torch for exactly that reason), and
+`pyproject.toml` must NOT declare `openprogram` as a dependency (the host
+already provides it). Full contract:
+[docs/installing-harnesses.md](https://github.com/Fzkuji/OpenProgram/blob/main/docs/installing-harnesses.md).
+
+</details>
 
 ### 2. Run
 

@@ -25,15 +25,16 @@ MANIFEST = json.loads((HERE / "runs/sspro_slice/slice_manifest.json").read_text(
 OUT_BASE = REPO / "runs" / "sspro_stack"
 
 
-def run_annotation(arm: str, ann: str, indexes: str) -> tuple[str, int, int]:
+def run_annotation(arm: str, ann: str, indexes: str,
+                   provider: str, model: str, out_subdir: str) -> tuple[str, int, int]:
     stem = ann[:-5]
-    out = OUT_BASE / arm / f"{stem}.jsonl"
-    work = OUT_BASE / arm / "work" / stem
+    out = OUT_BASE / out_subdir / f"{stem}.jsonl"
+    work = OUT_BASE / out_subdir / "work" / stem
     out.parent.mkdir(parents=True, exist_ok=True)
     cmd = [PY, str(HERE / "run_screenspot_pro.py"),
            "--annotation", ann, "--indexes", indexes,
            "--output", str(out), "--work-dir", str(work),
-           "--provider", "openai-codex", "--model", "gpt-5.5",
+           "--provider", provider, "--model", model,
            "--runtime-retries", "4", "--retry-provider-errors", "2",
            "--exec-timeout-s", "300",
            "--download-timeout-s", "120", "--download-retries", "5",
@@ -80,17 +81,33 @@ def prefetch() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--arm", choices=["prefetch", "single", "zoom"], required=True)
-    ap.add_argument("--concurrency", type=int, default=3)
+    ap.add_argument("--concurrency", type=int, default=1)
+    ap.add_argument("--provider", default="openai-codex")
+    ap.add_argument("--model", default="gpt-5.5")
+    ap.add_argument("--out-subdir", default="", help="输出子目录;默认=arm 名")
     args = ap.parse_args()
 
     if args.arm == "prefetch":
         return prefetch()
 
+    # MiniMax 凭证:从 auth store 注入 env(子进程继承)
+    if args.provider.startswith("minimax"):
+        import os
+        cred = Path.home() / ".openprogram" / "auth" / args.provider / "default.json"
+        if cred.exists():
+            d = json.loads(cred.read_text(encoding="utf-8"))
+            os.environ.setdefault("MINIMAX_CN_API_KEY", d["credentials"][0]["payload"]["api_key"])
+
+    out_subdir = args.out_subdir or args.arm
     groups = MANIFEST["index_args"]
-    print(f"{args.arm}: {len(groups)} annotations, {MANIFEST['total']} samples", flush=True)
+    print(f"{args.arm} [{args.provider}/{args.model}] -> {out_subdir}: "
+          f"{len(groups)} annotations, {MANIFEST['total']} samples, "
+          f"concurrency={args.concurrency}", flush=True)
     tot_ok = tot_n = 0
     with ThreadPoolExecutor(max_workers=args.concurrency) as ex:
-        futs = [ex.submit(run_annotation, args.arm, ann, idxs) for ann, idxs in sorted(groups.items())]
+        futs = [ex.submit(run_annotation, args.arm, ann, idxs,
+                          args.provider, args.model, out_subdir)
+                for ann, idxs in sorted(groups.items())]
         for fut in as_completed(futs):
             stem, ok, n = fut.result()
             tot_ok += ok

@@ -115,6 +115,22 @@ Reply with ONLY JSON:
 # candidate list can sit between them exactly as origin/main did.
 _CROP_DECISION_RULES = _CROP_DECISION_RULES_INTRO + "\n\n" + _CROP_DECISION_RULES_BODY
 
+# Refuse addendum — appended to the crop-decision rules ONLY when
+# config.allow_refuse is True. It lifts the "never give up / target is assumed
+# to exist" instruction and grants one extra action: abstain.
+_REFUSE_ADDENDUM = """Refusal option (overrides "do not give up"):
+- The requested target is NOT guaranteed to exist. Some instructions are
+  infeasible on this screen — the named control/menu/option is simply not
+  present, the feature does not exist in this application, or the instruction
+  refers to something not shown.
+- If, after looking at the screenshot (back out with action="recrop" first if
+  you are zoomed in and unsure), you are confident NO element on the screen can
+  satisfy the instruction, return action="refuse".
+- Only refuse when you are confident the target is absent. If a plausible target
+  might be present, keep cropping/clicking as usual — do not refuse out of mere
+  difficulty."""
+_REFUSE_JSON_ENUM = "crop|final|recrop|refuse"
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # target_convention="element" prompt variants.
@@ -393,6 +409,13 @@ class ScreenSpotLocatorConfig:
     #                 low-confidence salvage answer. A lost-but-zoomed-in run
     #                 is still a far better guess than no answer at all.
     exhaustion_fallback: str = "none"
+    # Optional extra action: let the model abstain. When True, the crop-decision
+    # stage may return action="refuse" if, looking at the screenshot, the
+    # requested target genuinely does not exist on screen (the task is
+    # infeasible). The "never give up / target is assumed to exist" instruction
+    # is then lifted. Default False → prompts and behaviour are byte-identical to
+    # the no-refuse pipeline, so every existing benchmark is unaffected.
+    allow_refuse: bool = False
 
     @classmethod
     def from_env(cls) -> "ScreenSpotLocatorConfig":
@@ -497,6 +520,7 @@ class ScreenSpotLocatorConfig:
                 "none",
                 {"none", "keep_best"},
             ),
+            allow_refuse=_env_bool("GUI_HARNESS_ALLOW_REFUSE", False),
         )
 
 
@@ -631,6 +655,12 @@ Rejected crop attempts from this same current crop:
 coordinates:
 {candidate_lines or "(none)"}"""
             _rules_full, _rules_intro, _rules_body = _crop_rules_for(config)
+            if config.allow_refuse:
+                # Gated: append the refusal grant. When off, every string below is
+                # byte-identical to the no-refuse pipeline.
+                _rules_full = _rules_full + "\n\n" + _REFUSE_ADDENDUM
+                _rules_body = _rules_body + "\n\n" + _REFUSE_ADDENDUM
+            _act_enum = _REFUSE_JSON_ENUM if config.allow_refuse else "crop|final|recrop"
             if config.iterative_prompt_layout == "legacy":
                 # Byte-for-byte origin/main: framing prose -> candidates -> Rules
                 # -> JSON, all in one text block, no cache prefix, no accumulation.
@@ -654,13 +684,13 @@ coordinates:
                         "vs crop away. Then set the bbox to that region.\n"
                         "Reply with ONLY JSON:\n"
                         + '{"reasoning": "...", "target_visible_element": "...", '
-                        + '"action": "crop|final|recrop", "bbox": [x1, y1, x2, y2], '
+                        + '"action": "' + _act_enum + '", "bbox": [x1, y1, x2, y2], '
                         + '"confidence": 0.0}'
                     )
                 else:
                     tail = (
                         "Reply with ONLY JSON:\n"
-                        + '{"action": "crop|final|recrop", "bbox": [x1, y1, x2, y2], '
+                        + '{"action": "' + _act_enum + '", "bbox": [x1, y1, x2, y2], '
                         + '"target_visible_element": "...", "confidence": 0.0, "reasoning": "..."}'
                     )
                 context = dynamic_head + "\n\n" + candidates_block + "\n\n" + tail
@@ -698,6 +728,24 @@ coordinates:
                 "confidence": float(parsed.get("confidence", 0) or 0),
                 "reasoning": parsed.get("reasoning", ""),
             }
+            if config.allow_refuse and action == "refuse":
+                history.append(entry)
+                print(
+                    "  [screenspot_zoom] model refused (no target on screen): "
+                    f"{str(entry.get('reasoning', ''))[:80]}",
+                    file=__import__("sys").stderr,
+                )
+                return {
+                    "id": "iterative_zoom",
+                    "source": "screenspot_iterative_zoom",
+                    "grounding_type": "iterative_zoom_refused",
+                    "refused": True,
+                    "cx": None,
+                    "cy": None,
+                    "confidence": float(parsed.get("confidence", 0) or 0),
+                    "reasoning": str(entry.get("reasoning", "")),
+                    "iterative_zoom": {"rounds": len(history), "history": history},
+                }
             if action in {"recrop", "restart", "widen", "fail"}:
                 fallback_box = _iterative_restart_box(current_box, history, img_w, img_h)
                 entry["fallback_box"] = fallback_box

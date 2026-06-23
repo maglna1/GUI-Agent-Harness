@@ -1,10 +1,10 @@
-# Qwen2.5-VL-3B GUIAct Smoke Run
+# Qwen2.5-VL-3B GUIAct Run
 
-Status: completed_10_sample_smoke
+Status: running
 
-| Dataset | Completed | Correct | Wrong | Wrong format | Accuracy |
-|---|---:|---:|---:|---:|---:|
-| GUIAct | 10 | 6 | 3 | 1 | 60.0% |
+| Dataset | Completed | Planned | Correct | Wrong | Wrong format | Accuracy |
+|---|---:|---:|---:|---:|---:|---:|
+| GUIAct | 50 | 42545 | 27 | 14 | 9 | 54.0% |
 
 Results file: `results.jsonl`
 Errors file: `errors.jsonl`

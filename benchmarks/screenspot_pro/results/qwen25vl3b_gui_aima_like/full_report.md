@@ -1,13 +1,10 @@
 # Qwen2.5-VL-3B GUIAct Run
 
-Status: stopped after user request.
-
-The run was stopped after the first batch request. The continuous runner had
-already reached 107 samples before it was stopped.
+Status: running
 
 | Dataset | Completed | Planned | Correct | Wrong | Wrong format | Accuracy |
 |---|---:|---:|---:|---:|---:|---:|
-| GUIAct | 107 | 42,545 | 55 | 31 | 21 | 51.4% |
+| GUIAct | 150 | 42545 | 71 | 46 | 33 | 47.3% |
 
 Results file: `results.jsonl`
 Errors file: `errors.jsonl`
